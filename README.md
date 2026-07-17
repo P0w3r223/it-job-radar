@@ -16,7 +16,8 @@
    (Polish quirk: `regular` = mid), currencies, and keeps **B2B (net) separate from
    employment (gross)**.
 4. **Analyze** — top technologies (incl. for juniors), salary medians per seniority/tech,
-   Wrocław vs. remote.
+   Wrocław vs. remote — with a narrative notebook
+   ([`notebooks/01_analysis.ipynb`](notebooks/01_analysis.ipynb)).
 5. **Publish** — a mini report site on GitHub Pages describing the project and the
    current market snapshot (built from a local snapshot — see the automation note).
 
