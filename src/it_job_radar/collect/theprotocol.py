@@ -89,8 +89,8 @@ def parse_offer(html: str) -> dict | None:
     if not data:
         return None
     offer = data.get("props", {}).get("pageProps", {}).get("offer")
-    if not isinstance(offer, dict):
-        return None
+    if not isinstance(offer, dict) or not offer.get("id"):
+        return None  # no id -> would break the upsert primary key / idempotency
 
     attrs = offer.get("attributes", {})
     employment = attrs.get("employment", {})
@@ -101,8 +101,11 @@ def parse_offer(html: str) -> dict | None:
         "offer_id": offer.get("id"),
         "title": (attrs.get("title") or {}).get("value"),
         "company": (attrs.get("employer") or {}).get("name"),
-        "cities": [w.get("city") for w in workplaces if w.get("city")],
-        "regions": [w.get("region") for w in workplaces if w.get("region")],
+        # keep city+region paired per workplace (parallel lists would misalign)
+        "locations": [
+            {"city": w.get("city"), "region": w.get("region")}
+            for w in workplaces if w.get("city")
+        ],
         "seniority": list(employment.get("positionLevelIds") or []),
         "work_modes": [
             w.get("code") for w in employment.get("detailedWorkModes") or [] if w.get("code")
@@ -119,7 +122,7 @@ def parse_offer(html: str) -> dict | None:
 
 def _spread_sample(urls: list[str], sample_size: int) -> list[str]:
     """Take an evenly spread slice across the sitemap (offers appear ordered)."""
-    if not sample_size or sample_size >= len(urls):
+    if sample_size >= len(urls):
         return urls
     step = max(1, len(urls) // sample_size)
     return urls[::step][:sample_size]
@@ -130,6 +133,10 @@ def collect_offers(
     session: requests.Session | None = None,
 ) -> list[dict]:
     """Collect a bounded, spread sample of parsed offers, throttled and PII-free."""
+    if sample_size <= 0:
+        raise ValueError(
+            f"sample_size must be positive (never the whole base), got {sample_size}"
+        )
     session = session or _session()
     urls = _spread_sample(fetch_sitemap_urls(session), sample_size)
 
@@ -137,11 +144,13 @@ def collect_offers(
     for url in urls:
         try:
             html = fetch_offer_html(url, session)
+            parsed = parse_offer(html)
+            if parsed:
+                parsed["offer_url"] = url
+                offers.append(parsed)
         except requests.RequestException:
             continue
-        parsed = parse_offer(html)
-        if parsed:
-            parsed["offer_url"] = url
-            offers.append(parsed)
-        time.sleep(config.REQUEST_DELAY_S)
+        finally:
+            # throttle on every iteration — including errors, so a 429/503 storm backs off
+            time.sleep(config.REQUEST_DELAY_S)
     return offers

@@ -116,13 +116,12 @@ def normalize_offer(offer: dict, alias_index: dict[str, str]) -> dict:
         "offer_id": offer.get("offer_id"),
         "title": offer.get("title"),
         "company": offer.get("company"),
-        "cities": offer.get("cities", []),
-        "regions": offer.get("regions", []),
+        "locations": offer.get("locations", []),
         "seniority": [s for s in (normalize_seniority(v) for v in offer.get("seniority", [])) if s],
         "work_modes": [m for m in (normalize_work_mode(v) for v in offer.get("work_modes", [])) if m],
         "technologies": {
-            "expected": sorted({normalize_technology(t, alias_index) for t in offer.get("tech_expected", []) if t}),
-            "optional": sorted({normalize_technology(t, alias_index) for t in offer.get("tech_optional", []) if t}),
+            "expected": sorted({t for t in (normalize_technology(x, alias_index) for x in offer.get("tech_expected", [])) if t}),
+            "optional": sorted({t for t in (normalize_technology(x, alias_index) for x in offer.get("tech_optional", [])) if t}),
         },
         "salaries": [normalize_salary(c) for c in offer.get("contracts", [])],
     }

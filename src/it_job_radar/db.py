@@ -68,7 +68,7 @@ def _replace_children(conn: sqlite3.Connection, offer: dict) -> None:
     )
     conn.executemany(
         "INSERT INTO offer_locations (offer_id, city, region) VALUES (?, ?, ?)",
-        [(oid, c, None) for c in offer.get("cities", [])],
+        [(oid, loc.get("city"), loc.get("region")) for loc in offer.get("locations", [])],
     )
     tech = offer.get("technologies", {})
     tech_rows = [(oid, t, 1) for t in tech.get("expected", [])] + \
