@@ -28,7 +28,9 @@ the source must clearly permit machine access.
   the full 6,449-offer base daily.
 - **No personal data (GDPR)** — store only offer attributes (title, company **name**,
   city/region, salary, work mode, seniority, technologies). The `applying` block
-  (recruiter URLs, reference numbers, personal-data clauses) is dropped.
+  (recruiter URLs, reference numbers, personal-data clauses) is dropped. Caveat: for a
+  sole proprietorship a company name may be a person's name — a residual risk we
+  knowingly accept for this educational snapshot.
 - **Low rate + caching** — delays between requests, dedup on offer id.
 - **Attribution + educational purpose** stated in the README.
 

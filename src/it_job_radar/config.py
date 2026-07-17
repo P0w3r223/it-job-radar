@@ -57,6 +57,7 @@ WORK_MODE_MAP = {
     "office": "office", "full-office": "office", "stationary": "office",
     "mobile": "mobile",
 }
+WORK_MODE_REMOTE = "remote"  # canonical remote label, referenced by analysis queries
 
 # Salary handling. B2B is net-on-invoice, employment (UoP) is gross — kept separate.
 KNOWN_CURRENCIES = ("PLN", "EUR", "USD", "GBP")

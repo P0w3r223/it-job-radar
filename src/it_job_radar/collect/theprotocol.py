@@ -153,4 +153,6 @@ def collect_offers(
         finally:
             # throttle on every iteration — including errors, so a 429/503 storm backs off
             time.sleep(config.REQUEST_DELAY_S)
+    skipped = len(urls) - len(offers)
+    print(f"[collect] {len(urls)} urls -> {len(offers)} parsed, {skipped} skipped")
     return offers

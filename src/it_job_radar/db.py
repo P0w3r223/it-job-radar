@@ -111,6 +111,15 @@ def write_snapshot_stat(conn: sqlite3.Connection, date: str, metric: str, value:
     conn.commit()
 
 
+_READABLE_TABLES = frozenset({
+    "offers", "offer_seniority", "offer_work_modes", "offer_locations",
+    "offer_technologies", "offer_salaries", "snapshot_stats",
+})
+
+
 def read_table(conn: sqlite3.Connection, table: str) -> pd.DataFrame:
-    """Read a whole table into a DataFrame (for analysis)."""
+    """Read a whole table into a DataFrame. The table name is whitelisted (not user input,
+    but this keeps the one f-string query in the module provably injection-safe)."""
+    if table not in _READABLE_TABLES:
+        raise ValueError(f"unknown table: {table!r}")
     return pd.read_sql_query(f"SELECT * FROM {table}", conn)

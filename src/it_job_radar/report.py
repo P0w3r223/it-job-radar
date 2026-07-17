@@ -50,10 +50,15 @@ def _salary_chart(salary_df) -> str:
     return _fig_to_base64(fig)
 
 
-def generate_report(output_path: Path | None = None) -> Path:
-    """Build the HTML mini site and write it to ``output_path``."""
+def generate_report(output_path: Path | None = None, conn=None) -> Path:
+    """Build the HTML mini site and write it to ``output_path``.
+
+    A ``conn`` can be injected for testing; otherwise a default connection is opened and
+    closed here.
+    """
     output_path = output_path or _DEFAULT_REPORT_PATH
-    conn = db.connect()
+    own_conn = conn is None
+    conn = conn or db.connect()
     try:
         top_tech = analyze.top_technologies(conn, limit=12)
         top_tech_junior = analyze.top_technologies(conn, seniority="junior", limit=8)
@@ -61,7 +66,8 @@ def generate_report(output_path: Path | None = None) -> Path:
         work_modes = analyze.work_mode_distribution(conn)
         offer_count = len(db.read_table(conn, "offers"))
     finally:
-        conn.close()
+        if own_conn:
+            conn.close()
 
     tech_chart = _bar_chart(
         list(top_tech["technology"]), list(top_tech["offers"]),
