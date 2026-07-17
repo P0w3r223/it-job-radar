@@ -17,8 +17,8 @@
    employment (gross)**.
 4. **Analyze** — top technologies (incl. for juniors), salary medians per seniority/tech,
    Wrocław vs. remote.
-5. **Publish** — a scheduled job snapshots daily (trends over time) and deploys a mini
-   report site to GitHub Pages.
+5. **Publish** — a mini report site on GitHub Pages describing the project and the
+   current market snapshot (built from a local snapshot — see the automation note).
 
 ## Data source & ethics
 
@@ -28,6 +28,16 @@ the whole base — EU database *sui generis* right), throttling, **no personal d
 (recruiter details dropped), and attribution. See
 [`docs/research/data-sources.md`](docs/research/data-sources.md) for the full reasoning,
 including why No Fluff Jobs / justjoin.it were rejected (`robots.txt` disallows `/api/`).
+
+## Live site
+
+Mini report: **<https://p0w3r223.github.io/it-job-radar/>**
+
+**Note on automation.** theprotocol serves stripped pages to datacenter IPs (GitHub
+Actions), so collection runs **locally** and the site is published from a committed
+snapshot; CI keeps the test suite green as the living proof. Escalating bot-evasion to
+scrape from CI would be the wrong trade-off for a portfolio project — a deliberate,
+documented limitation rather than a hidden failure.
 
 ## Project structure
 
