@@ -1,5 +1,7 @@
 """Tests for the theprotocol parser (pure, no network)."""
 
+import pytest
+
 from it_job_radar.collect import theprotocol
 
 SAMPLE_HTML = """
@@ -33,8 +35,7 @@ def test_parse_offer_extracts_pii_free_fields():
     assert offer["offer_id"] == "abc-123"
     assert offer["title"] == "Backend Developer"
     assert offer["company"] == "ACME"
-    assert offer["cities"] == ["Wrocław"]
-    assert offer["regions"] == ["dolnośląskie"]
+    assert offer["locations"] == [{"city": "Wrocław", "region": "dolnośląskie"}]
     assert offer["seniority"] == ["mid"]
     assert offer["work_modes"] == ["remote"]
     assert offer["tech_expected"] == ["Python"]
@@ -58,6 +59,16 @@ def test_parse_offer_contracts_carry_salary_kind():
 def test_parse_offer_invalid_returns_none():
     assert theprotocol.parse_offer("<html>no next data</html>") is None
     assert theprotocol.parse_offer('<script id="__NEXT_DATA__" type="x">{"props":{}}</script>') is None
+
+
+def test_parse_offer_without_id_returns_none():
+    html = SAMPLE_HTML.replace('"id":"abc-123",', "")
+    assert theprotocol.parse_offer(html) is None  # no id -> would break the PK
+
+
+def test_collect_offers_rejects_nonpositive_sample():
+    with pytest.raises(ValueError):
+        theprotocol.collect_offers(sample_size=0)  # must never pull the whole base
 
 
 def test_spread_sample_is_bounded_and_spread():

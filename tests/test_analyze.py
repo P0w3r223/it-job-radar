@@ -6,7 +6,7 @@ from it_job_radar import analyze, db
 def _offer(oid, tech, seniority, city=None, work_mode=None, mfrom=None, mto=None, kind="b2b"):
     return {
         "offer_id": oid, "title": "T", "company": "C", "offer_url": "u",
-        "cities": [city] if city else [], "regions": [],
+        "locations": [{"city": city, "region": None}] if city else [],
         "seniority": [seniority], "work_modes": [work_mode] if work_mode else [],
         "technologies": {"expected": [tech], "optional": []},
         "salaries": (

@@ -6,7 +6,7 @@ from it_job_radar import db
 def _offer(offer_id):
     return {
         "offer_id": offer_id, "title": "Backend", "company": "ACME", "offer_url": "u",
-        "cities": ["Wrocław"], "regions": ["dolnośląskie"],
+        "locations": [{"city": "Wrocław", "region": "dolnośląskie"}],
         "seniority": ["mid"], "work_modes": ["remote"],
         "technologies": {"expected": ["python"], "optional": ["docker"]},
         "salaries": [{
