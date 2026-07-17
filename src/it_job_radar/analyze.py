@@ -53,7 +53,11 @@ def _order_by_seniority(df: pd.DataFrame, column: str = "seniority") -> pd.DataF
 def salary_by_seniority(
     conn, kind: str = config.CONTRACT_B2B, currency: str = "PLN"
 ) -> pd.DataFrame:
-    """Median monthly salary range per seniority for one contract kind + currency."""
+    """Median monthly salary range per seniority for one contract kind + currency.
+
+    An offer listing multiple seniority levels contributes its salary to each bucket — an
+    accepted modeling choice for a market-overview snapshot.
+    """
     query = (
         "SELECT os.seniority AS seniority, sal.monthly_from AS mfrom, sal.monthly_to AS mto "
         "FROM offer_salaries sal JOIN offer_seniority os ON sal.offer_id = os.offer_id "
@@ -82,14 +86,14 @@ def wroclaw_vs_remote(
     rem_q = (
         "SELECT sal.monthly_from AS mfrom, sal.monthly_to AS mto "
         "FROM offer_salaries sal JOIN offer_work_modes wm ON sal.offer_id = wm.offer_id "
-        "WHERE wm.work_mode = 'remote' AND sal.currency = ? AND sal.kind = ? "
+        "WHERE wm.work_mode = ? AND sal.currency = ? AND sal.kind = ? "
         "AND sal.monthly_from IS NOT NULL"
     )
     wro = pd.read_sql_query(wro_q, conn, params=(config.FOCUS_CITY, currency, kind))
-    rem = pd.read_sql_query(rem_q, conn, params=(currency, kind))
+    rem = pd.read_sql_query(rem_q, conn, params=(config.WORK_MODE_REMOTE, currency, kind))
     return pd.DataFrame(
         {
-            "group": [config.FOCUS_CITY, "remote"],
+            "group": [config.FOCUS_CITY, config.WORK_MODE_REMOTE],
             "offers": [len(wro), len(rem)],
             "median_from": [wro["mfrom"].median() if len(wro) else None,
                             rem["mfrom"].median() if len(rem) else None],
