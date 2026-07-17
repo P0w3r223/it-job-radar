@@ -12,22 +12,32 @@ import pandas as pd
 from it_job_radar import config
 
 
-def top_technologies(conn, seniority: str | None = None, limit: int = 15) -> pd.DataFrame:
-    """Most frequent technologies (optionally restricted to a seniority level)."""
+def top_technologies(
+    conn, seniority: str | None = None, limit: int = 15, required_only: bool = True
+) -> pd.DataFrame:
+    """Most frequent technologies (optionally per seniority).
+
+    ``required_only`` (default) counts only must-have technologies (``required = 1``);
+    set False to include nice-to-haves. Counting both together over-weights optional
+    skills, which distorts "what the market demands".
+    """
+    conditions: list[str] = []
+    params: list = []
+    if required_only:
+        conditions.append("ot.required = 1")  # constant, not user input
+    join = ""
     if seniority:
-        query = (
-            "SELECT ot.technology AS technology, COUNT(DISTINCT ot.offer_id) AS offers "
-            "FROM offer_technologies ot "
-            "JOIN offer_seniority os ON ot.offer_id = os.offer_id "
-            "WHERE os.seniority = ? "
-            "GROUP BY ot.technology ORDER BY offers DESC LIMIT ?"
-        )
-        return pd.read_sql_query(query, conn, params=(seniority, limit))
+        join = "JOIN offer_seniority os ON ot.offer_id = os.offer_id"
+        conditions.append("os.seniority = ?")
+        params.append(seniority)
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    params.append(limit)
     query = (
-        "SELECT technology, COUNT(DISTINCT offer_id) AS offers "
-        "FROM offer_technologies GROUP BY technology ORDER BY offers DESC LIMIT ?"
+        f"SELECT ot.technology AS technology, COUNT(DISTINCT ot.offer_id) AS offers "
+        f"FROM offer_technologies ot {join} {where} "
+        f"GROUP BY ot.technology ORDER BY offers DESC LIMIT ?"
     )
-    return pd.read_sql_query(query, conn, params=(limit,))
+    return pd.read_sql_query(query, conn, params=tuple(params))
 
 
 def _order_by_seniority(df: pd.DataFrame, column: str = "seniority") -> pd.DataFrame:

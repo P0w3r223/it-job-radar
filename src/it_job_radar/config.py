@@ -1,8 +1,9 @@
 """Central configuration: source, scraping etiquette, paths, normalization maps.
 
 No I/O here — only constants. The scraping settings encode the project's ethical
-guardrails (identify ourselves, throttle, sample a bounded slice rather than the whole
-base); see docs/research/data-sources.md.
+guardrails: throttle between requests, sample a bounded slice rather than the whole base,
+and drop personal data. (The User-Agent is a realistic browser string, not a self-ID,
+because the site serves a stripped page otherwise — see docs/research/data-sources.md.)
 """
 
 from __future__ import annotations
