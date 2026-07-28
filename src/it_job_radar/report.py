@@ -133,10 +133,10 @@ def generate_report(output_path: Path | None = None, conn=None) -> Path:
 </head>
 <body>
 <h1>it-job-radar</h1>
-<p class="sub">Polish IT job market — technology trends &amp; salary ranges</p>
+<p class="sub">Polish IT job market — technology trends and salary ranges</p>
 
 <div class="card">
-  <strong>What this is.</strong> A data pipeline that collects a sample of Polish IT job
+  <strong>Overview.</strong> A data pipeline that collects a sample of Polish IT job
   offers from <a href="https://theprotocol.it">theprotocol.it</a>, normalizes them
   (unifying technology names, seniority levels and currencies), stores them in SQLite,
   and analyses <em>which technologies are in demand</em> and <em>what they pay</em>.
@@ -155,7 +155,7 @@ def generate_report(output_path: Path | None = None, conn=None) -> Path:
 <img src="data:image/png;base64,{modes_chart}" alt="Work modes">
 
 <div class="card">
-  <strong>Methodology &amp; limitations.</strong> A bounded, spread sample (not the whole
+  <strong>Methodology and limitations.</strong> A bounded, spread sample (not the whole
   base), respecting robots.txt and dropping personal data. Salaries are medians within
   one currency/contract kind; small snapshots and unit edge-cases (hourly rates) can
   skew rare buckets. See the repo's <code>docs/research/data-sources.md</code>.
