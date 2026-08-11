@@ -13,28 +13,46 @@ daily automation.
 
 ```
 src/it_job_radar/
-  config.py                # source, scraping etiquette, paths, normalization maps
-  collect/theprotocol.py   # sitemap -> offer pages -> parsed offer dicts (I/O split from parse)
-  db.py                    # SQLite: offers + technologies + dated snapshots
-  normalize.py             # tech aliases, seniority (PL), currency, B2B/UoP handling
-  analyze.py               # aggregations (top tech, salary medians, Wrocław vs remote)
+  config.py                # source, scraping etiquette, sampling, paths, normalization maps
+  collect/theprotocol.py   # sitemap frame -> offer pages -> parsed offer dicts (I/O split from parse)
+  migrations.py            # ordered schema migrations (PRAGMA user_version)
+  db.py                    # SQLite: population frame + offer attributes + snapshots
+  sampling.py              # fetch-queue construction (pure): inflow -> backlog -> audit
+  normalize.py             # tech aliases, role families, seniority (PL), currency, B2B/UoP
+  quality.py               # quality metrics + data contract (violating-predicate rules)
+  export.py                # redacted Parquet dataset (ADR 0002)
+  analytics/queries/*.sql  # ONE definition per published metric — edit metrics here
+  analytics/engine.py      # runs the named queries in DuckDB over the dataset
+  analytics/stats.py       # bootstrap intervals, thin-stratum suppression, ordering
+  analyze.py               # DEPRECATED SQLite path, kept until phase 5 removes it
+  pipeline.py              # CLI: observe (frame only) | collect (frame + bounded fetch)
 data/normalization/        # technology alias dictionary (YAML)
 notebooks/                 # analysis notebook
 tests/                     # pytest
+docs/adr/                  # architecture decisions (stack, published artifact, sampling)
+docs/plan/                 # implementation walkthrough
 docs/research/             # data-source research + legal/ethics
 ```
 
 ## Rules (do not violate)
 
-- **Respect the source.** Browser UA is required for data, but stay respectful: bounded
-  spread sample (never the whole base), throttle between requests, **no personal data**
-  (drop the `applying` block), attribution in README.
+- **Respect the source.** Browser UA is required for data, but stay respectful: a bounded
+  fetch budget capped by `MAX_FETCH_BUDGET` (never the whole base), throttle between
+  requests, **no personal data** (drop the `applying` block), attribution in README.
+- **Presence is free, attributes are not.** One sitemap request identifies every live
+  offer, so presence is never sampled; offer pages are fetched at most once per offer.
+  See `docs/adr/0003_sampling-design.md`.
+- **Cohorts are not interchangeable.** Offers already listed at day 0 have an unknown
+  entry date (left truncation) and must never be used for lifetime estimation.
 - **B2B ≠ UoP.** Salary `kindCode` is `gross` (employment) or `netto (+ VAT)` (B2B);
   never average them together. Watch `time_unit` (`godzinowo` hourly vs monthly).
 - **Normalize before aggregating.** Unify technology aliases and seniority labels first,
   or trends are noise (`ReactJS` vs `React.js`).
-- **Separate I/O from logic.** Parsing (`parse_offer`) is pure and unit-tested; network
-  lives in `fetch_*` / `collect_offers`.
+- **Separate I/O from logic.** Parsing (`parse_offer`, `offer_id_from_url`) and queue
+  construction (`sampling.build_queue`) are pure and unit-tested; network lives in
+  `fetch_*`, database access in `db.py`.
+- **Schema changes go through `migrations.py`.** `CREATE TABLE IF NOT EXISTS` cannot
+  evolve a table that already exists.
 
 ## Conventions
 
@@ -48,6 +66,15 @@ docs/research/             # data-source research + legal/ethics
 ```bash
 .venv/Scripts/python -m pip install -r requirements.txt
 pytest
+
+# record the population frame — one cheap request, presence only
+.venv/Scripts/python -m it_job_radar.pipeline observe
+# frame + a bounded queue of offers whose attributes we do not hold yet
+.venv/Scripts/python -m it_job_radar.pipeline collect --budget 300 --seed 20260811
+# quality metrics + data contract (exit 1 on violation) and the unmatched-alias list
+.venv/Scripts/python -m it_job_radar.pipeline quality
+# redacted Parquet dataset the analytics layer and the site query
+.venv/Scripts/python -m it_job_radar.pipeline export
 ```
 
 <!-- code-review-graph MCP tools -->

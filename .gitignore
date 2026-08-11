@@ -32,3 +32,7 @@ Thumbs.db
 .codegraph/
 # Added by code-review-graph
 .code-review-graph/
+
+# Local database backups. The published dataset lives in docs/data/ and IS committed —
+# it is the artifact the site downloads (ADR 0001).
+data/backups/
