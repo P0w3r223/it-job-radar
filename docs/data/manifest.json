@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-08-11T15:17:31",
+  "git_sha": "06e294e",
+  "schema_version": 4,
+  "snapshot": {
+    "id": 4,
+    "kind": "observe",
+    "observed_date": "2026-08-11",
+    "started_at": "2026-08-11T14:54:46"
+  },
+  "coverage": {
+    "offers_listed": 6466,
+    "attributes_known": 93,
+    "share": 0.0144
+  },
+  "rows": {
+    "offers": 339,
+    "offer_seniority": 422,
+    "offer_work_modes": 521,
+    "offer_locations": 339,
+    "offer_technologies": 1650,
+    "offer_salaries": 479,
+    "snapshots": 4,
+    "snapshot_stats": 26,
+    "sitemap_offers": 6466
+  },
+  "bytes": 201574,
+  "quality": {
+    "salary_disclosure_rate": 0.2714,
+    "salary_kind_unknown_share": 0.7641,
+    "role_family_other_share": 0.0796,
+    "role_family_unclassified": 0.0,
+    "strata_below_min_n": 6,
+    "freshness_days": 0
+  },
+  "redaction": {
+    "columns": [
+      "title",
+      "company",
+      "offer_url"
+    ],
+    "offer_id": "salted sha256, truncated — stable across snapshots, not reversible",
+    "note": "Derived analytical data. It answers market questions and deliberately cannot answer listing questions (who is hiring, where to apply)."
+  },
+  "source": {
+    "name": "theprotocol.it",
+    "url": "https://theprotocol.it",
+    "attribution": "Job data © theprotocol.it (Grupa Pracuj), collected respectfully for educational, non-commercial use."
+  }
+}
