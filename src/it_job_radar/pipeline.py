@@ -22,6 +22,7 @@ import sys
 from datetime import date, datetime
 
 from it_job_radar import config, db, export, normalize, quality, sampling
+from it_job_radar.site import build as site_build
 from it_job_radar.collect import theprotocol
 
 _UNMATCHED_IN_DETAIL = 20
@@ -288,6 +289,8 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("quality", help="print quality metrics and check the data contract")
     export_cmd = sub.add_parser("export", help="write the redacted Parquet dataset")
     export_cmd.add_argument("--out", default=None, help=f"defaults to {config.DATASET_DIR}")
+    site_cmd = sub.add_parser("site", help="render the published page from the dataset")
+    site_cmd.add_argument("--out", default=None, help=f"defaults to {config.PUBLISH_DIR}")
     args = parser.parse_args(argv)
 
     if args.command == "observe":
@@ -299,6 +302,8 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(1)  # a violated contract must fail a build, not just print
     elif args.command == "export":
         export_dataset(args.out)
+    elif args.command == "site":
+        print(f"[site] wrote {site_build.build(args.out)}")
 
 
 if __name__ == "__main__":
