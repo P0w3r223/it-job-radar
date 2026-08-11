@@ -1,0 +1,82 @@
+# Role families — what kind of work an offer title describes.
+#
+# Why this exists: "top technologies for juniors" was reporting active directory, windows
+# server and microsoft office, because IT-support roles and developer roles were pooled.
+# Splitting them is the difference between a true statement and a misleading one.
+#
+# ORDER MATTERS — first match wins, so the most specific family must come first. A
+# "Business Intelligence Analyst" is data, not a generic analyst; a "DevSecOps Engineer"
+# is devops, not security. Patterns are lowercase substrings matched against the title,
+# and Polish forms are given as stems so gendered variants both match
+# ("programist" covers programista and programistka; "analit" covers analityk,
+# analityczka and analityczny).
+#
+# A title matching nothing becomes "other". That is a legitimate outcome, published as a
+# quality metric — an "other" share that climbs means this file needs work.
+
+- family: qa
+  patterns: [tester, testerka, " qa", "qa ", quality assurance, automatyk test, test engineer,
+             test automation, sdet, inżynier testów, testów]
+
+- family: devops
+  patterns: [devops, devsecops, sre, site reliability, platform engineer, cloud engineer,
+             cloud dev, kubernetes engineer, infrastructure engineer, inżynier platform,
+             aws engineer, azure engineer, linux administrator]
+
+- family: security
+  patterns: [security, bezpieczeń, cyber, pentest, soc analyst, iam, appsec, audyt, audit]
+
+- family: ml
+  patterns: [machine learning, " ml ", mlops, deep learning, data scientist, "ai ",
+             sztucznej inteligencji, nlp]
+
+- family: data
+  patterns: [data engineer, hurtowni danych, big data, business intelligence, " bi ",
+             etl, data warehouse, pl/sql, sql developer, database, dba, data migration,
+             inżynier danych, data analyst, analityk danych]
+
+- family: mobile
+  patterns: [android, " ios", flutter, react native, mobile developer, mobile engineer]
+
+- family: fullstack
+  patterns: [full stack, fullstack, full-stack]
+
+- family: frontend
+  patterns: [frontend, front-end, front end, react developer, angular, vue.js, javascript developer]
+
+# "java " keeps its trailing space so it cannot swallow "javascript".
+- family: backend
+  patterns: [backend, back-end, back end, "java ", python developer, python engineer,
+             ".net", "c# ", php, node.js, golang, "c++", ruby developer, scala developer,
+             spring boot, embedded]
+
+- family: architect
+  patterns: [architekt, architect]
+
+- family: erp
+  patterns: [sap, erp, comarch, enova, symfonia, dynamics, navision, ifs applications]
+
+- family: support
+  # Bare "administrator" is deliberate and only safe here: database and ERP administrators
+  # are claimed by the data and erp families above, which are tested first.
+  patterns: [helpdesk, help desk, service desk, wsparcia technicznego, informatyk,
+             administrator, network engineer, systems engineer, support engineer,
+             serwisant, technik, customer success, "ds. it", "ds. obsługi",
+             specjalista it, it specialist]
+
+- family: analyst
+  patterns: [analit, analyst, business analysis, konsultant, consultant, wdrożeni]
+
+- family: product
+  patterns: [product owner, product manager, scrum master, agile coach, projektant ux,
+             " ux", ui designer, graphic design, ux/ui]
+
+- family: management
+  patterns: [manager, menedżer, kierownik, head of, dyrektor, szef, team lead, tech lead,
+             engineering lead]
+
+# Generic development titles with no stated specialisation. Deliberately last among the
+# engineering families: reaching this rule means the title said "developer" and nothing more.
+- family: software
+  patterns: [programist, developer, deweloper, software engineer, inżynier oprogramowania,
+             inżynieri, rpa, low-code, power platform, power apps, salesforce, sharepoint]

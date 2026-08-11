@@ -60,3 +60,18 @@ def test_normalize_salary_employment_gross_monthly():
     assert result["kind"] == "employment"
     assert result["monthly_from"] == 15000
     assert result["monthly_to"] == 20000
+
+
+def test_normalize_offer_keeps_the_url(idx):
+    """Regression: the rebuilt dict silently dropped offer_url, storing NULL for every
+    offer collected before 2026-08-11."""
+    raw = {
+        "offer_id": "a1", "title": "Backend", "company": "ACME",
+        "offer_url": "https://theprotocol.it/szczegoly/praca/x,oferta,a1",
+        "locations": [], "seniority": ["regular"], "work_modes": ["remote"],
+        "tech_expected": ["ReactJS"], "tech_optional": [], "contracts": [],
+    }
+    context = normalize.Normalization(tech_aliases=idx, role_rules=())
+    normalized = normalize.normalize_offer(raw, context)
+    assert normalized["offer_url"] == raw["offer_url"]
+    assert normalized["seniority"] == ["mid"]  # the Polish quirk still applies
