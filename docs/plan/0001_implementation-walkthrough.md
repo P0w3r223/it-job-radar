@@ -27,7 +27,7 @@ in the concept catalogue feeds phases beyond that.
 | 2 — Quality layer | **done** |
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
-| 5 — Site | 5.1, 5.2 and 5.5 **done** (server-rendered page, inline-SVG charts, honesty gate); 5.3 and 5.4 — the DuckDB-WASM interactive layer — remain |
+| 5 — Site | 5.1, 5.2 and 5.5 **done** (server-rendered page, inline-SVG charts, honesty gate); 5.3, 5.4 (DuckDB-WASM layer) and 5.6 (retire `analyze.py`) remain |
 | 6 — Publication | not started (now also covers the repository landing page and the portfolio index) |
 | 7 — Trends and survival | blocked on repeated observations |
 
@@ -331,6 +331,17 @@ their own against the same artifact.
 Done when: the query text shown is read from the same `.sql` files Phase 3 executes — not
 a copy pasted into the template.
 
+**5.6 Retire the deprecated path**
+Goal: `analyze.py` exists only because `notebooks/01_analysis.ipynb` still imports it.
+Move the notebook onto `analytics.engine` + `analytics.stats`, then delete `analyze.py`
+together with the parity tests that were guarding the transition.
+Files: `notebooks/01_analysis.ipynb`, `src/it_job_radar/analyze.py`,
+`tests/test_analytics.py` (parity section), `pyproject.toml`, `config.py`.
+Also then possible: drop `seaborn` (unused), move `matplotlib` to the `dev` extra, and
+remove `config.FIGURES_DIR` with the stale PNGs in `reports/figures/`.
+Done when: nothing imports `analyze`, and the runtime dependency list contains only what
+the pipeline and the site actually use.
+
 **5.5 Craft pass**
 Goal: progressive enhancement verified (full report readable with JS disabled), dark
 mode, self-hosted font replacing the Google Fonts CDN link, Open Graph and Twitter meta
@@ -424,6 +435,42 @@ still require several collection runs across distinct days.
 
 Deferred: a Playwright smoke test asserting the browser numbers match the Python engine.
 Worth adding once the interactive layer stabilises; not worth its setup cost before then.
+
+## Remaining work, in the order I would do it
+
+State at the end of the 2026-08-11 session: phases 0-4 complete, phase 5 complete except
+its interactive layer, 129 tests green, eleven commits on
+`feat/v2-browser-side-analytics` (branched from `main`, not merged).
+
+**1. Repository landing page (6.4).** First, because it is the first thing a senior reader
+sees and it currently describes a project that no longer exists — stride sampling, a
+`collect` flow that works differently, a site built from matplotlib PNGs. Includes the
+About description and topics, and the ADR pointers in `docs/research/data-sources.md`.
+
+**2. Publication guards (6.2, 6.3).** CI runs only `pytest` today. Add the drift guard —
+rebuild `docs/` from the committed dataset, fail on any difference — and move the Pages
+deploy into an action. Until this exists, a stale page can still be published silently.
+
+**3. Retire the deprecated path (5.6).** Move the notebook onto the analytics engine, then
+delete `analyze.py`, `seaborn`, the `matplotlib` runtime dependency, `config.FIGURES_DIR`
+and the stale PNGs.
+
+**4. Interactive layer (5.3, 5.4).** Valuable but not urgent: the page is complete without
+it, and it is the one step that puts ~3 MB of vendored WASM into the repository. Decide
+open question 3 before starting.
+
+**5. Portfolio index (6.5).** Must be last: the submodule pointer should reference the
+merged commit, so this follows the branch landing on `main`.
+
+**6. Phase 7**, once repeated observations exist.
+
+Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
+(regression controlling for seniority and city), and the dataset export that P4
+`pl-jobs-lora` consumes.
+
+**Not a task, but a decision.** Coverage is 1.4% (93 of 6466 listed offers). The page says
+so plainly, but a few more `collect` runs would turn the junior finding from a direction
+into a measurement — it currently rests on 19 offers.
 
 ## Open questions
 
