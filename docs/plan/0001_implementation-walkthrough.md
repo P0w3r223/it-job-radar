@@ -27,7 +27,7 @@ in the concept catalogue feeds phases beyond that.
 | 2 — Quality layer | **done** |
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
-| 5 — Site | not started |
+| 5 — Site | 5.1, 5.2 and 5.5 **done** (server-rendered page, inline-SVG charts, honesty gate); 5.3 and 5.4 — the DuckDB-WASM interactive layer — remain |
 | 6 — Publication | not started (now also covers the repository landing page and the portfolio index) |
 | 7 — Trends and survival | blocked on repeated observations |
 
@@ -43,6 +43,11 @@ Two deliberate deviations, recorded so they are not mistaken for oversights:
   the filtered rows and the aggregation happens in `analytics/stats.py`. The filter is the
   part that must be defined once; keeping a second aggregated query would duplicate that
   `WHERE` clause, and returning rows is what allows a bootstrap interval and an honest `n`.
+- **Charts are inline SVG generated at build time, not matplotlib PNGs.** The plan said
+  "static fallback charts"; SVG turned out to be the better default rather than a fallback
+  — it inherits the reader's colour scheme (so dark mode is not a second rendering), stays
+  sharp at any size, and its labels are real text for screen readers. It also cut the page
+  from 82 kB of base64 to 31 kB.
 - **Parity is asserted against `analyze.py`, not between two dialects.** SQLite has no
   `MEDIAN`, so identical query text cannot run on both engines. The stronger check is the
   one in place: the exported Parquet must equal the redacted source table for table, and
