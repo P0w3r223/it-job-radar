@@ -1,0 +1,157 @@
+"""Write the analytical dataset the site queries — redacted by design (ADR 0002).
+
+The published artifact is derived, not a copy: titles, employer names and offer URLs never
+leave this machine, and ``offer_id`` becomes a salted hash. What remains answers *market*
+questions — what is in demand, what it pays, where, on what contract — and cannot answer
+*listing* questions like who is hiring or where to apply. That boundary is enforced here,
+in one place, and asserted by a test rather than left to reviewer vigilance.
+
+The hash is stable across snapshots, so an offer can still be followed over time.
+
+Parquet rather than JSON or CSV because the browser reads it column by column: the page
+downloads one file and runs real SQL against it (ADR 0001).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
+from it_job_radar import config, db, migrations, quality
+
+
+class ArtifactTooLarge(RuntimeError):
+    """Raised when the published dataset exceeds its size budget."""
+
+# Tables that make up the dataset. Order is irrelevant to correctness, but keeping the
+# frame last groups the "what exists" tables after the "what it contains" ones.
+DATASET_TABLES = (
+    "offers",
+    "offer_seniority",
+    "offer_work_modes",
+    "offer_locations",
+    "offer_technologies",
+    "offer_salaries",
+    "snapshots",
+    "snapshot_stats",
+    "sitemap_offers",
+)
+
+
+def hash_offer_id(offer_id: str) -> str:
+    """Salted, truncated digest of an offer id — stable across snapshots, not reversible.
+
+    The salt lives in the repository. The goal is to make the artifact useless as a
+    job-board substitute, not to withstand a determined adversary; claiming otherwise
+    would be security theatre.
+    """
+    digest = hashlib.sha256(f"{config.EXPORT_ID_SALT}:{offer_id}".encode())
+    return digest.hexdigest()[: config.EXPORT_ID_LENGTH]
+
+
+def redact(frame: pd.DataFrame) -> pd.DataFrame:
+    """Drop the columns that must never be published and hash the offer id."""
+    out = frame.drop(columns=[c for c in config.REDACTED_COLUMNS if c in frame.columns])
+    if "offer_id" in out.columns:
+        out = out.assign(offer_id=out["offer_id"].map(hash_offer_id, na_action="ignore"))
+    return out
+
+
+def write_dataset(
+    conn: sqlite3.Connection, out_dir: Path | None = None
+) -> dict[str, int]:
+    """Write every dataset table to ``out_dir`` as redacted Parquet. Returns row counts."""
+    out_dir = Path(out_dir or config.DATASET_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    counts: dict[str, int] = {}
+    for table in DATASET_TABLES:
+        frame = redact(db.read_table(conn, table))
+        frame.to_parquet(out_dir / f"{table}.parquet", index=False)
+        counts[table] = len(frame)
+    return counts
+
+
+def dataset_bytes(out_dir: Path) -> int:
+    """Total size of the published files — what a reader actually downloads."""
+    return sum(path.stat().st_size for path in out_dir.glob("*.parquet"))
+
+
+def build_manifest(
+    conn: sqlite3.Connection,
+    counts: dict[str, int],
+    size_bytes: int,
+    git_sha: str | None = None,
+    generated_at: str | None = None,
+) -> dict:
+    """Describe the artifact well enough that a reader can judge it without asking.
+
+    Provenance (which commit, which snapshot, how fresh), scale (rows, bytes), measured
+    trustworthiness (the quality metrics), and what was deliberately removed. A figure on
+    the page can be traced back through this to the run that produced it.
+    """
+    snapshot = conn.execute(
+        "SELECT snapshot_id, kind, observed_date, started_at FROM snapshots "
+        "ORDER BY snapshot_id DESC LIMIT 1"
+    ).fetchone()
+    observed_date = snapshot[2] if snapshot else None
+    frame_size, with_attributes = 0, 0
+    if observed_date:
+        with_attributes, frame_size = db.coverage(conn, observed_date)
+
+    metrics = quality.snapshot_metrics(conn, observed_date) if observed_date else {}
+    return {
+        "generated_at": generated_at or datetime.now().isoformat(timespec="seconds"),
+        "git_sha": git_sha,
+        "schema_version": migrations.SCHEMA_VERSION,
+        "snapshot": {
+            "id": snapshot[0], "kind": snapshot[1], "observed_date": snapshot[2],
+            "started_at": snapshot[3],
+        } if snapshot else None,
+        "coverage": {
+            "offers_listed": frame_size,
+            "attributes_known": with_attributes,
+            "share": round(with_attributes / frame_size, 4) if frame_size else 0.0,
+        },
+        "rows": counts,
+        "bytes": size_bytes,
+        "quality": {name: round(m.value, 4) for name, m in metrics.items()},
+        "redaction": {
+            "columns": list(config.REDACTED_COLUMNS),
+            "offer_id": "salted sha256, truncated — stable across snapshots, not reversible",
+            "note": (
+                "Derived analytical data. It answers market questions and deliberately "
+                "cannot answer listing questions (who is hiring, where to apply)."
+            ),
+        },
+        "source": {
+            "name": config.SOURCE_NAME,
+            "url": config.SOURCE_URL,
+            "attribution": config.ATTRIBUTION,
+        },
+    }
+
+
+def publish(
+    conn: sqlite3.Connection, out_dir: Path | None = None, git_sha: str | None = None
+) -> dict:
+    """Write the dataset and its manifest, refusing to publish an oversized artifact."""
+    out_dir = Path(out_dir or config.DATASET_DIR)
+    counts = write_dataset(conn, out_dir)
+    size_bytes = dataset_bytes(out_dir)
+    if size_bytes > config.MAX_ARTIFACT_BYTES:
+        raise ArtifactTooLarge(
+            f"dataset is {size_bytes} bytes, over the "
+            f"{config.MAX_ARTIFACT_BYTES} budget — the page would make readers download it"
+        )
+
+    manifest = build_manifest(conn, counts, size_bytes, git_sha=git_sha)
+    (out_dir / config.MANIFEST_NAME).write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return manifest

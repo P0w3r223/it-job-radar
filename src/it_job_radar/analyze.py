@@ -1,5 +1,11 @@
 """Aggregations over the offer database: tech trends, salary medians, Wrocław vs remote.
 
+DEPRECATED — superseded by ``analytics/`` (ADR 0001), where each metric is defined once as
+a ``.sql`` file that the pipeline, the tests and the published page all run. This module is
+kept only until the notebook and ``report.py`` move over in phase 5, and
+``tests/test_analytics.py`` asserts that both paths still produce the same numbers so the
+transition cannot silently change a published figure. Do not add metrics here.
+
 SQL does the joining/grouping; medians are computed in pandas (SQLite has no MEDIAN).
 Salaries are always filtered by currency + kind, because B2B (net) and employment
 (gross) must never be pooled.
