@@ -9,10 +9,22 @@ Pure functions — no network, no DB.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import yaml
 from rapidfuzz import fuzz, process
 
 from it_job_radar import config
+
+RoleRules = tuple[tuple[str, tuple[str, ...]], ...]  # ordered (family, patterns)
+
+
+@dataclass(frozen=True)
+class Normalization:
+    """The reference data normalization needs, loaded once per run."""
+
+    tech_aliases: dict[str, str]
+    role_rules: RoleRules
 
 _HOURS_PER_MONTH = 160  # ~20 working days x 8h, to convert hourly B2B to monthly
 _FUZZY_THRESHOLD = 88
@@ -34,6 +46,39 @@ def load_tech_aliases(path=config.TECH_ALIASES_PATH) -> dict[str, str]:
         for alias in aliases or []:
             index[str(alias).lower()] = canonical
     return index
+
+
+def load_role_families(path=config.ROLE_FAMILIES_PATH) -> RoleRules:
+    """Load the ordered role-family rules. Order is the rule: first match wins."""
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    return tuple(
+        (entry["family"], tuple(str(p).lower() for p in entry.get("patterns", [])))
+        for entry in raw
+    )
+
+
+def load_normalization(
+    aliases_path=config.TECH_ALIASES_PATH, roles_path=config.ROLE_FAMILIES_PATH
+) -> Normalization:
+    """Load every reference table normalization needs — one file read per run."""
+    return Normalization(
+        tech_aliases=load_tech_aliases(aliases_path),
+        role_rules=load_role_families(roles_path),
+    )
+
+
+def classify_role_family(title: str | None, rules: RoleRules) -> str:
+    """Map an offer title to a role family (pure). ``other`` when nothing matches.
+
+    Substring matching on the lowercased title, first rule wins. Deliberately a rule table
+    rather than a model: the question is what the title *says*, the rules are auditable,
+    and a wrong answer is fixed by editing one line of YAML.
+    """
+    text = f" {(title or '').lower()} "
+    for family, patterns in rules:
+        if any(pattern in text for pattern in patterns):
+            return family
+    return config.ROLE_FAMILY_OTHER
 
 
 def normalize_technology(name: str, alias_index: dict[str, str], threshold: int = _FUZZY_THRESHOLD) -> str:
@@ -110,12 +155,18 @@ def normalize_salary(contract: dict) -> dict:
     }
 
 
-def normalize_offer(offer: dict, alias_index: dict[str, str]) -> dict:
+def normalize_offer(offer: dict, normalization: Normalization) -> dict:
     """Return a normalized copy of a parsed offer (technologies, seniority, salaries)."""
+    alias_index = normalization.tech_aliases
     return {
+        "role_family": classify_role_family(offer.get("title"), normalization.role_rules),
         "offer_id": offer.get("offer_id"),
         "title": offer.get("title"),
         "company": offer.get("company"),
+        # Carried through explicitly: this dict is rebuilt field by field, and omitting
+        # the URL here is what silently stored NULL for every offer collected before
+        # 2026-08-11 (see docs/plan/0001_implementation-walkthrough.md, step 1.6).
+        "offer_url": offer.get("offer_url"),
         "locations": offer.get("locations", []),
         "seniority": [s for s in (normalize_seniority(v) for v in offer.get("seniority", [])) if s],
         "work_modes": [m for m in (normalize_work_mode(v) for v in offer.get("work_modes", [])) if m],
