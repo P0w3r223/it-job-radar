@@ -1,0 +1,184 @@
+"""Tests for the quality metrics and the data contract.
+
+The contract tests deliberately insert *bad* rows: a rule that never fires proves nothing,
+so each one is shown catching the thing it exists to catch.
+"""
+
+import pytest
+
+from it_job_radar import config, db, quality
+
+ALIASES = {"react": "React", "reactjs": "React", "python": "Python"}
+
+
+def _offer(offer_id="a1", **overrides):
+    offer = {
+        "offer_id": offer_id, "title": "Backend", "company": "ACME", "offer_url": "u",
+        "role_family": "backend", "locations": [], "seniority": ["mid"],
+        "work_modes": ["remote"], "technologies": {"expected": ["python"], "optional": []},
+        "salaries": [{
+            "contract_type": "B2B", "kind": "b2b", "currency": "PLN",
+            "salary_from": 100, "salary_to": 150, "time_unit": "godzinowo",
+            "monthly_from": 16000, "monthly_to": 24000,
+        }],
+    }
+    offer.update(overrides)
+    return offer
+
+
+# --- Alias coverage ----------------------------------------------------------
+
+
+def test_alias_coverage_counts_resolved_names():
+    raw = [{"tech_expected": ["ReactJS", "Python"], "tech_optional": ["React"]}]
+    coverage = quality.alias_coverage(raw, ALIASES)
+
+    assert (coverage.total, coverage.matched) == (3, 3)
+    assert coverage.rate == 1.0
+    assert coverage.unmatched == {}
+
+
+def test_alias_coverage_names_what_the_dictionary_missed():
+    raw = [
+        {"tech_expected": ["Python", "Comarch XL"], "tech_optional": []},
+        {"tech_expected": ["Comarch XL"], "tech_optional": ["Enova365"]},
+    ]
+    coverage = quality.alias_coverage(raw, ALIASES)
+
+    assert coverage.rate == pytest.approx(1 / 4)
+    # ranked by frequency: this is the list that goes into tech_aliases.yaml
+    assert coverage.top_unmatched(1) == [("comarch xl", 2)]
+
+
+def test_alias_coverage_of_nothing_is_not_a_failure():
+    assert quality.alias_coverage([], ALIASES).rate == 1.0
+
+
+# --- Snapshot metrics --------------------------------------------------------
+
+
+def test_metrics_measure_disclosure_and_thin_strata(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    paid = _offer("paid")
+    unpaid = _offer("unpaid", salaries=[{
+        "contract_type": "UoP", "kind": None, "currency": None, "salary_from": None,
+        "salary_to": None, "time_unit": None, "monthly_from": None, "monthly_to": None,
+    }])
+    db.write_offers(conn, [paid, unpaid], "2026-08-11")
+
+    metrics = quality.snapshot_metrics(conn, "2026-08-11")
+    assert metrics["salary_disclosure_rate"].value == 0.5
+    assert metrics["salary_kind_unknown_share"].value == 0.5
+    assert metrics["freshness_days"].value == 0
+    # "mid" has 2 offers, far below MIN_STRATUM_N -> flagged, with the count in the detail
+    assert metrics["strata_below_min_n"].value == 1
+    assert "mid=2" in metrics["strata_below_min_n"].detail
+    conn.close()
+
+
+def test_metrics_report_unclassified_and_other_roles(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.write_offers(
+        conn,
+        [_offer("a", role_family="other"), _offer("b", role_family="backend"),
+         _offer("c", role_family=None)],
+        "2026-08-11",
+    )
+
+    metrics = quality.snapshot_metrics(conn, "2026-08-11")
+    assert metrics["role_family_other_share"].value == pytest.approx(1 / 3)
+    assert metrics["role_family_unclassified"].value == 1
+    conn.close()
+
+
+def test_freshness_grows_with_a_stale_database(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.write_offers(conn, [_offer()], "2026-07-17")
+    assert quality.snapshot_metrics(conn, "2026-08-11")["freshness_days"].value == 25
+    conn.close()
+
+
+# --- Contract ----------------------------------------------------------------
+
+
+def test_clean_database_satisfies_the_contract(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.write_offers(conn, [_offer()], "2026-08-11")
+    db.record_frame(conn, [("a1", "https://x/a1")], "2026-08-11")
+
+    assert quality.validate_contract(conn) == []
+    conn.close()
+
+
+def test_contract_catches_an_unknown_work_mode(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.write_offers(conn, [_offer(work_modes=["teleportation"])], "2026-08-11")
+
+    violations = quality.validate_contract(conn)
+    assert [(v.table, v.rows) for v in violations] == [("offer_work_modes", 1)]
+    conn.close()
+
+
+def test_contract_catches_an_inverted_salary_range(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    broken = _offer(salaries=[{
+        "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 1,
+        "salary_to": 2, "time_unit": "monthly", "monthly_from": 30000, "monthly_to": 10000,
+    }])
+    db.write_offers(conn, [broken], "2026-08-11")
+
+    assert "ordered" in quality.validate_contract(conn)[0].rule
+    conn.close()
+
+
+def test_contract_catches_an_implausible_salary(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    absurd = _offer(salaries=[{
+        "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 5000,
+        "salary_to": 6000, "time_unit": "godzinowo",
+        # an hourly rate mistaken for a monthly one — the failure mode this rule exists for
+        "monthly_from": 800_000, "monthly_to": 960_000,
+    }])
+    db.write_offers(conn, [absurd], "2026-08-11")
+
+    rules = {v.rule for v in quality.validate_contract(conn)}
+    assert any("above the maximum" in rule for rule in rules)
+    conn.close()
+
+
+def test_contract_catches_a_salary_without_its_currency(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    ambiguous = _offer(salaries=[{
+        "contract_type": "B2B", "kind": None, "currency": None, "salary_from": 100,
+        "salary_to": 150, "time_unit": "monthly", "monthly_from": 16000, "monthly_to": 24000,
+    }])
+    db.write_offers(conn, [ambiguous], "2026-08-11")
+
+    assert any("currency and kind" in v.rule for v in quality.validate_contract(conn))
+    conn.close()
+
+
+def test_enforce_raises_with_the_offending_rules(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.write_offers(conn, [_offer(seniority=["wizard"])], "2026-08-11")
+
+    with pytest.raises(quality.ContractError, match="offer_seniority"):
+        quality.enforce_contract(conn)
+    conn.close()
+
+
+def test_contract_rejects_an_unknown_config_reference(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    bogus = {"tables": {"offers": {"columns": {"title": {"allowed_from": "NOPE"}}}}}
+
+    with pytest.raises(quality.ContractError, match="NOPE"):
+        quality.validate_contract(conn, bogus)
+    conn.close()
+
+
+def test_allowed_values_come_from_config_not_a_copy():
+    """The contract references config, so the two cannot drift apart."""
+    contract = quality.load_contract()
+    seniority = contract["tables"]["offer_seniority"]["columns"]["seniority"]
+    assert seniority["allowed_from"] == "SENIORITY_ORDER"
+    assert "head" in config.SENIORITY_ORDER  # added in phase 1.5, contract follows for free
