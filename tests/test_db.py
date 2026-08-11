@@ -44,8 +44,24 @@ def test_rewrite_offer_replaces_children(tmp_path):
 
 def test_snapshot_stat_roundtrip(tmp_path):
     conn = db.connect(tmp_path / "t.db")
-    db.write_snapshot_stat(conn, "2026-07-17", "offer_count", 12)
+    snapshot_id = db.start_snapshot(conn, "collect", "2026-07-17", "2026-07-17T10:00:00")
+    db.write_snapshot_stat(conn, snapshot_id, "2026-07-17", "offer_count", 12)
+
     stats = db.read_table(conn, "snapshot_stats")
     assert stats.loc[0, "metric"] == "offer_count"
     assert stats.loc[0, "value"] == 12
+    assert stats.loc[0, "snapshot_id"] == snapshot_id
+    conn.close()
+
+
+def test_two_runs_on_one_day_keep_separate_metrics(tmp_path):
+    """A snapshot is a run, not a date — the second run must not overwrite the first."""
+    conn = db.connect(tmp_path / "t.db")
+    first = db.start_snapshot(conn, "collect", "2026-07-17", "2026-07-17T10:00:00")
+    second = db.start_snapshot(conn, "collect", "2026-07-17", "2026-07-17T18:00:00")
+    db.write_snapshot_stat(conn, first, "2026-07-17", "offer_count", 250)
+    db.write_snapshot_stat(conn, second, "2026-07-17", "offer_count", 314)
+
+    stats = db.read_table(conn, "snapshot_stats").sort_values("value")
+    assert list(stats["value"]) == [250.0, 314.0]
     conn.close()
