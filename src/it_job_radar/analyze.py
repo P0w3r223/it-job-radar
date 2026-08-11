@@ -2,7 +2,7 @@
 
 DEPRECATED — superseded by ``analytics/`` (ADR 0001), where each metric is defined once as
 a ``.sql`` file that the pipeline, the tests and the published page all run. This module is
-kept only until the notebook and ``report.py`` move over in phase 5, and
+kept only until the notebook moves over, and
 ``tests/test_analytics.py`` asserts that both paths still produce the same numbers so the
 transition cannot silently change a published figure. Do not add metrics here.
 

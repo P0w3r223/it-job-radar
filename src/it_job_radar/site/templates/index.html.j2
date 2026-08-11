@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ headline.claim }} — it-job-radar</title>
+<meta name="description" content="{{ headline.detail | default('Polish IT job market: technology demand and salary ranges, from a bounded, documented sample.') }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ headline.claim }}">
+<meta property="og:description" content="{{ headline.detail | default('Polish IT job market analysis.') }}">
+<meta property="og:url" content="https://p0w3r223.github.io/it-job-radar/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2213%22>&#128225;</text></svg>">
+<style>
+{{ styles }}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Polish IT job market · snapshot {{ manifest.snapshot.observed_date }}</p>
+  <h1>{{ headline.claim }}</h1>
+  {% if headline.detail %}
+  <p class="lead">{{ headline.detail }}</p>
+  {% endif %}
+</header>
+
+<ul class="kpis">
+  {% for kpi in kpis %}
+  <li class="kpi">
+    <div class="kpi-value">{{ kpi.value }}</div>
+    <div class="kpi-label">{{ kpi.label }}</div>
+    <div class="kpi-note">{{ kpi.note }}</div>
+  </li>
+  {% endfor %}
+</ul>
+
+<h2>What a junior offer actually is</h2>
+<p>
+  Job boards present junior roles as one category. Split by the kind of work the title
+  describes, they are not: IT support and administration is the largest single group, and
+  the technologies those roles ask for — Active Directory, Windows Server, Microsoft
+  Office — have little to do with the ones a junior developer is told to learn.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.junior_roles }}</div>
+  <figcaption>
+    Offers open to juniors by role family. <strong>n = {{ junior_n }}</strong> — a small
+    base, and the reason this is stated as a direction rather than a measurement.
+  </figcaption>
+</figure>
+<div class="card caution">
+  <strong>Read this one carefully.</strong> {{ junior_n }} junior offers is not enough to
+  quantify the split; it is enough to notice that the largest category is not development.
+  Any percentage taken from it would be a spurious precision.
+</div>
+
+<h2>What the market asks for</h2>
+<figure>
+  <div class="chart-wrap">{{ charts.technologies }}</div>
+  <figcaption>
+    Distinct offers listing each technology as a <em>requirement</em>. Nice-to-haves are
+    excluded: pooling them overweights optional skills.
+  </figcaption>
+</figure>
+
+<h2>Offers by role family</h2>
+<figure>
+  <div class="chart-wrap">{{ charts.roles }}</div>
+  <figcaption>
+    Classified from the title by an auditable rule table. Titles matching nothing stay as
+    <code>other</code> rather than being forced into a family
+    ({{ '%.0f%%' | format(manifest.quality.role_family_other_share * 100) }} of offers).
+  </figcaption>
+</figure>
+
+<h2>What it pays</h2>
+<p>
+  B2B is net on invoice, employment is gross. They are different amounts of money for the
+  same work, so they are never pooled — and shown side by side rather than as one number.
+  Each row is the median lower-to-upper range; the thin line is the bootstrap interval
+  around the lower bound. Where it is wide, the figure is not reliable.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.salary_b2b }}</div>
+  <figcaption>B2B contracts, PLN per month, net.</figcaption>
+</figure>
+<figure>
+  <div class="chart-wrap">{{ charts.salary_employment }}</div>
+  <figcaption>Employment contracts, PLN per month, gross.</figcaption>
+</figure>
+{% if thin_strata %}
+<p class="note">
+  Greyed rows rest on fewer than {{ min_stratum_n }} offers:
+  {% for level, count in thin_strata.items() %}{{ level }} ({{ count }}){% if not loop.last %}, {% endif %}{% endfor %}.
+  They are shown rather than dropped, because a silently missing level is harder to notice
+  than a visibly uncertain one.
+</p>
+{% endif %}
+
+<h2>Where the work is</h2>
+<figure>
+  <div class="chart-wrap">{{ charts.work_modes }}</div>
+  <figcaption>
+    An offer can list several modes, so these deliberately sum to more than the offer
+    count — which is why this is not a pie chart.
+  </figcaption>
+</figure>
+
+<h2>How much of the market this covers</h2>
+<table>
+  <tbody>
+    <tr><th>Offers listed by the source today</th><td class="num">{{ manifest.coverage.offers_listed }}</td></tr>
+    <tr><th>Offers whose attributes we hold</th><td class="num">{{ manifest.coverage.attributes_known }}</td></tr>
+    <tr><th>Coverage</th><td class="num">{{ '%.1f%%' | format(manifest.coverage.share * 100) }}</td></tr>
+    <tr><th>Offers disclosing a salary</th><td class="num">{{ '%.0f%%' | format(manifest.quality.salary_disclosure_rate * 100) }}</td></tr>
+    <tr><th>Snapshot age</th><td class="num">{{ manifest.quality.freshness_days | int }} days</td></tr>
+  </tbody>
+</table>
+<p class="note">
+  Presence is complete — one sitemap request identifies every live offer — while
+  attributes are fetched at most once per offer under a bounded daily budget. Coverage
+  therefore grows over time without ever increasing load on the source.
+</p>
+
+<h2>Method, and what it cannot tell you</h2>
+<div class="card">
+  <p>
+    <strong>Collection.</strong> A bounded, documented sample of
+    <a href="{{ manifest.source.url }}">{{ manifest.source.name }}</a>: throttled, no
+    personal data, attribution kept. Never the whole base.
+  </p>
+  <p>
+    <strong>Normalization.</strong> Technology names are unified before counting
+    (<code>ReactJS</code> and <code>React.js</code> are one thing), seniority follows the
+    Polish convention where <em>regular</em> means mid, and hourly rates are scaled to a
+    monthly equivalent.
+  </p>
+  <p>
+    <strong>Limits.</strong> One source, so this is that board's market, not the whole
+    market. Salaries only describe offers that disclose one — a minority. Offers already
+    listed when observation began have an unknown start date, so they cannot support any
+    claim about how long a posting stays open. Currencies are not converted.
+  </p>
+</div>
+
+<h2>The queries behind every figure</h2>
+<p class="note">
+  Each metric is defined once, as SQL, and this is that file — not a description of it.
+</p>
+{% for name, sql in queries.items() %}
+<details>
+  <summary>{{ name }}.sql</summary>
+  <pre><code>{{ sql }}</code></pre>
+</details>
+{% endfor %}
+
+<footer>
+  <p>
+    Built {{ generated.strftime('%Y-%m-%d') }} from snapshot
+    <time datetime="{{ manifest.snapshot.observed_date }}">{{ manifest.snapshot.observed_date }}</time>,
+    commit <code>{{ manifest.git_sha }}</code> ·
+    <a href="data/{{ 'manifest.json' }}">manifest</a> ·
+    <a href="https://github.com/P0w3r223/it-job-radar">source on GitHub</a>
+  </p>
+  <p>
+    The published dataset is derived and redacted: no titles, no employer names, no offer
+    URLs. It answers questions about the market and deliberately cannot answer questions
+    about individual listings.
+  </p>
+  <p>{{ manifest.source.attribution }}</p>
+</footer>
+
+</body>
+</html>
