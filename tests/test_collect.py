@@ -66,14 +66,74 @@ def test_parse_offer_without_id_returns_none():
     assert theprotocol.parse_offer(html) is None  # no id -> would break the PK
 
 
-def test_collect_offers_rejects_nonpositive_sample():
-    with pytest.raises(ValueError):
-        theprotocol.collect_offers(sample_size=0)  # must never pull the whole base
+OFFER_URL = (
+    "https://theprotocol.it/szczegoly/praca/java-developer-krakow"
+    ",oferta,f7690000-cabe-56d1-0371-08ded6ad4939"
+)
 
 
-def test_spread_sample_is_bounded_and_spread():
-    urls = [f"u{i}" for i in range(1000)]
-    sample = theprotocol._spread_sample(urls, 10)
-    assert len(sample) == 10
-    assert sample[0] == "u0"
-    assert sample[1] != "u1"  # spread, not the first 10
+def test_offer_id_is_readable_from_the_url():
+    """The whole frame design rests on this: identity without fetching the page."""
+    assert theprotocol.offer_id_from_url(OFFER_URL) == "f7690000-cabe-56d1-0371-08ded6ad4939"
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["", "https://theprotocol.it/szczegoly/praca/java-developer", "not a url",
+     "https://theprotocol.it/szczegoly/praca/x,oferta,not-a-guid"],
+)
+def test_offer_id_from_url_rejects_non_offers(url):
+    assert theprotocol.offer_id_from_url(url) is None
+
+
+class _FakeResponse:
+    def __init__(self, text):
+        self.text = text
+
+    def raise_for_status(self):
+        return None
+
+
+class _FakeSession:
+    """Serves canned XML per URL and records what was requested."""
+
+    def __init__(self, pages):
+        self.pages = pages
+        self.requested = []
+
+    def get(self, url, timeout=None):
+        self.requested.append(url)
+        return _FakeResponse(self.pages[url])
+
+
+def _sitemap(*urls):
+    locs = "".join(f"<loc>{u}</loc>" for u in urls)
+    return f'<?xml version="1.0"?><urlset>{locs}</urlset>'
+
+
+def test_sitemap_index_is_read_rather_than_hardcoded(monkeypatch):
+    monkeypatch.setattr(theprotocol.time, "sleep", lambda _: None)
+    session = _FakeSession({
+        theprotocol.config.TP_SITEMAP_INDEX_URL: _sitemap("https://x/one.xml", "https://x/two.xml"),
+    })
+    assert theprotocol.fetch_sitemap_index(session) == ["https://x/one.xml", "https://x/two.xml"]
+
+
+def test_fetch_frame_unions_children_and_drops_unparsable(monkeypatch):
+    monkeypatch.setattr(theprotocol.time, "sleep", lambda _: None)
+    other = OFFER_URL.replace("f7690000", "aaaa0000")
+    session = _FakeSession({
+        theprotocol.config.TP_SITEMAP_INDEX_URL: _sitemap("https://x/one.xml", "https://x/two.xml"),
+        "https://x/one.xml": _sitemap(OFFER_URL, "https://theprotocol.it/szczegoly/praca/no-id"),
+        "https://x/two.xml": _sitemap(other, OFFER_URL),  # duplicate across children
+    })
+    frame = theprotocol.fetch_frame(session)
+
+    assert len(frame) == 2  # deduplicated by id, unparsable URL skipped
+    assert dict(frame)["f7690000-cabe-56d1-0371-08ded6ad4939"] == OFFER_URL
+
+
+def test_empty_index_is_an_error_not_an_empty_frame():
+    session = _FakeSession({theprotocol.config.TP_SITEMAP_INDEX_URL: "<urlset></urlset>"})
+    with pytest.raises(theprotocol.TheProtocolError):
+        theprotocol.fetch_sitemap_index(session)
