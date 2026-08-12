@@ -1,0 +1,76 @@
+# Data contract — what must be true of the data before anything is published.
+#
+# Every rule is expressed as the condition that is WRONG. Validation counts the rows that
+# match it, so a violation report says exactly how many rows are bad and why, instead of
+# "validation failed".
+#
+# `allowed_from` names a tuple in config.py rather than repeating its values here, so the
+# contract and the code cannot drift apart about what a valid seniority or currency is.
+
+tables:
+  offers:
+    columns:
+      offer_id:
+        nullable: false
+    rules:
+      - name: collected_date is an ISO date
+        violating: >
+          collected_date IS NULL
+          OR collected_date NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+
+  offer_seniority:
+    columns:
+      seniority:
+        nullable: false
+        allowed_from: SENIORITY_ORDER
+
+  offer_work_modes:
+    columns:
+      work_mode:
+        nullable: false
+        allowed_from: WORK_MODE_VALUES
+
+  offer_technologies:
+    columns:
+      technology:
+        nullable: false
+    rules:
+      # Without a raw name a dictionary fix can never reach data already stored, so having
+      # one is an invariant rather than a convenience. The rule checks presence, not
+      # provenance: rows seeded by migration v5 carry a reconstruction of the original name,
+      # and no rule here can tell the two apart.
+      - name: raw_name is always populated
+        violating: raw_name IS NULL OR raw_name = ''
+
+  offer_salaries:
+    columns:
+      kind:
+        # null is legitimate: many contracts are listed without a salary at all
+        allowed_from: CONTRACT_KINDS
+      currency:
+        allowed_from: KNOWN_CURRENCIES
+      monthly_from:
+        min: 0
+        max_from: SALARY_SANITY_MAX
+      monthly_to:
+        min: 0
+        max_from: SALARY_SANITY_MAX
+    rules:
+      - name: monthly range is ordered
+        violating: monthly_from IS NOT NULL AND monthly_to IS NOT NULL AND monthly_from > monthly_to
+      - name: a disclosed salary carries its currency and kind
+        violating: monthly_from IS NOT NULL AND (currency IS NULL OR kind IS NULL)
+
+  sitemap_offers:
+    columns:
+      cohort:
+        nullable: false
+        allowed_from: COHORTS
+      fetch_state:
+        nullable: false
+        allowed_from: FETCH_STATES
+    rules:
+      - name: an offer cannot be last seen before it was first seen
+        violating: last_seen < first_seen
+      - name: a fetched offer records when it was fetched
+        violating: fetch_state = 'fetched' AND fetch_date IS NULL
