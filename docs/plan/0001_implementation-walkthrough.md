@@ -27,7 +27,7 @@ in the concept catalogue feeds phases beyond that.
 | 2 — Quality layer | **done** |
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
-| 5 — Site | 5.1, 5.2 and 5.5 **done** (server-rendered page, inline-SVG charts, honesty gate); 5.3, 5.4 (DuckDB-WASM layer) and 5.6 (retire `analyze.py`) remain |
+| 5 — Site | 5.1, 5.2, 5.5 and 5.6 **done** (server-rendered page, inline-SVG charts, honesty gate, deprecated path retired); 5.3 and 5.4 (DuckDB-WASM layer) remain |
 | 6 — Publication | 6.4 **done** (README rebuilt finding-first, About metadata and topics updated, ADR pointers added to the research doc); 6.1-6.3 and 6.5 remain |
 | 7 — Trends and survival | blocked on repeated observations |
 
@@ -461,9 +461,12 @@ ADR pointers added to `docs/research/data-sources.md`.
 rebuild `docs/` from the committed dataset, fail on any difference — and move the Pages
 deploy into an action. Until this exists, a stale page can still be published silently.
 
-**3. Retire the deprecated path (5.6).** Move the notebook onto the analytics engine, then
-delete `analyze.py`, `seaborn`, the `matplotlib` runtime dependency, `config.FIGURES_DIR`
-and the stale PNGs.
+**3. ~~Retire the deprecated path (5.6).~~ Done 2026-08-12.** The notebook now reads the
+*published* dataset through the named queries rather than the local database through
+`analyze.py`, which makes it reproducible by a reader and unable to drift from the page.
+`analyze.py`, its tests, the parity section, `seaborn`, the `matplotlib` runtime dependency,
+`config.FIGURES_DIR` and the stale PNGs are gone; the runtime now installs nothing that
+only the notebook uses.
 
 **4. Interactive layer (5.3, 5.4).** Valuable but not urgent: the page is complete without
 it, and it is the one step that puts ~3 MB of vendored WASM into the repository. Decide
