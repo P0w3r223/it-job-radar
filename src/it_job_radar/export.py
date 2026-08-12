@@ -89,6 +89,35 @@ def dataset_bytes(out_dir: Path) -> int:
     return sum(path.stat().st_size for path in out_dir.glob("*.parquet"))
 
 
+def verify(dataset_dir: Path | None = None) -> list[str]:
+    """Check the manifest against the files beside it. Returns readable mismatches.
+
+    The one path the drift guard cannot see: the page is rebuilt *from* the manifest, so a
+    stale or hand-edited manifest reproduces itself — page and manifest agree while both
+    describe data the parquet does not contain.
+    """
+    dataset_dir = Path(dataset_dir or config.DATASET_DIR)
+    manifest_path = dataset_dir / config.MANIFEST_NAME
+    if not manifest_path.is_file():
+        return [f"no manifest at {manifest_path}"]
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    problems: list[str] = []
+    for table, expected in (manifest.get("rows") or {}).items():
+        parquet = dataset_dir / f"{table}.parquet"
+        if not parquet.is_file():
+            problems.append(f"{table}: manifest claims {expected} rows, file is missing")
+            continue
+        actual = len(pd.read_parquet(parquet))
+        if actual != expected:
+            problems.append(f"{table}: manifest claims {expected} rows, file holds {actual}")
+
+    size = dataset_bytes(dataset_dir)
+    if manifest.get("bytes") != size:
+        problems.append(f"bytes: manifest claims {manifest.get('bytes')}, files total {size}")
+    return problems
+
+
 def build_manifest(
     conn: sqlite3.Connection,
     counts: dict[str, int],

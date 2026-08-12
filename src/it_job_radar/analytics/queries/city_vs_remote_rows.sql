@@ -21,3 +21,6 @@ FROM offer_salaries sal
 JOIN offer_work_modes wm ON wm.offer_id = sal.offer_id
 WHERE wm.work_mode = $work_mode
   AND sal.currency = $currency AND sal.kind = $kind AND sal.monthly_from IS NOT NULL
+
+-- Bootstrapped by the caller, so the row order is part of the published figure.
+ORDER BY group_name, monthly_from, monthly_to

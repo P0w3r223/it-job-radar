@@ -38,22 +38,23 @@
 <h2>What a junior offer actually is</h2>
 <p>
   Job boards present junior roles as one category. Split by the kind of work the title
-  describes, they are not: IT support and administration is the largest single group, and
-  the technologies those roles ask for — Active Directory, Windows Server, Microsoft
-  Office — have little to do with the ones a junior developer is told to learn.
+  describes, they are not: IT support and administration is the largest single group,
+  ahead of every engineering discipline. A ranking of "top technologies for juniors" taken
+  without that split describes a job most of its readers are not applying for.
 </p>
 <figure>
   <div class="chart-wrap">{{ charts.junior_roles }}</div>
   <figcaption>
-    Offers open to juniors by role family. <strong>n = {{ junior_n }}</strong> — a small
-    base, and the reason this is stated as a direction rather than a measurement.
+    Offers open to juniors by role family. <strong>n = {{ junior_n }}</strong>.
   </figcaption>
 </figure>
+{% if junior_n < min_stratum_n %}
 <div class="card caution">
-  <strong>Read this one carefully.</strong> {{ junior_n }} junior offers is not enough to
-  quantify the split; it is enough to notice that the largest category is not development.
-  Any percentage taken from it would be a spurious precision.
+  <strong>Read this one carefully.</strong> {{ junior_n }} junior offers is under the
+  {{ min_stratum_n }} this page treats as the floor for a quantified claim. It is enough to
+  notice which category is largest, not to put a percentage on it.
 </div>
+{% endif %}
 
 <h2>What the market asks for</h2>
 <figure>
@@ -160,7 +161,7 @@
     Built {{ generated[:10] }} from snapshot
     <time datetime="{{ manifest.snapshot.observed_date }}">{{ manifest.snapshot.observed_date }}</time>,
     commit <code>{{ manifest.git_sha }}</code> ·
-    <a href="data/{{ 'manifest.json' }}">manifest</a> ·
+    <a href="data/manifest.json">manifest</a> ·
     <a href="https://github.com/P0w3r223/it-job-radar">source on GitHub</a>
   </p>
   <p>
