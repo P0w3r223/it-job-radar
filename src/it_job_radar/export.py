@@ -55,8 +55,15 @@ def hash_offer_id(offer_id: str) -> str:
 
 
 def redact(frame: pd.DataFrame) -> pd.DataFrame:
-    """Drop the columns that must never be published and hash the offer id."""
-    out = frame.drop(columns=[c for c in config.REDACTED_COLUMNS if c in frame.columns])
+    """Drop what must never be published and what was never meant to be, and hash the id.
+
+    Two different reasons, applied in one place: `REDACTED_COLUMNS` would make the artifact
+    a substitute for the source, and `INTERNAL_COLUMNS` are the pipeline's own bookkeeping —
+    published they would put un-normalized source text into a dataset that promises
+    normalized attributes.
+    """
+    excluded = (*config.REDACTED_COLUMNS, *config.INTERNAL_COLUMNS)
+    out = frame.drop(columns=[c for c in excluded if c in frame.columns])
     if "offer_id" in out.columns:
         out = out.assign(offer_id=out["offer_id"].map(hash_offer_id, na_action="ignore"))
     return out

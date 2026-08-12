@@ -322,16 +322,6 @@ def write_offers(conn: sqlite3.Connection, offers: list[dict], collected_date: s
     return len(offers)
 
 
-def latest_metric(conn: sqlite3.Connection, metric: str) -> tuple[float, str | None] | None:
-    """Most recently recorded ``(value, detail)`` for a metric, or None if never written."""
-    row = conn.execute(
-        "SELECT value, detail FROM snapshot_stats WHERE metric = ? "
-        "ORDER BY snapshot_id DESC LIMIT 1",
-        (metric,),
-    ).fetchone()
-    return (float(row[0]), row[1]) if row else None
-
-
 def offer_titles(conn: sqlite3.Connection) -> list[tuple[str, str | None, str | None]]:
     """``(offer_id, title, current role_family)`` for every stored offer.
 

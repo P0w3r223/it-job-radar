@@ -71,6 +71,28 @@ def test_stored_alias_coverage_is_measured_against_the_current_dictionary(tmp_pa
     conn.close()
 
 
+def test_alias_coverage_is_part_of_the_snapshot_metrics(tmp_path):
+    """It has to ride with the other metrics, or it is recorded on the wrong runs.
+
+    The repair runs on every observation; measuring it beside a fetch would date each
+    curation gain to the next collection. Being here also carries it into the manifest.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    offer = _offer(technologies={
+        "expected": normalize.normalize_technologies(["ReactJS", "Comarch XL"], ALIASES),
+        "optional": [],
+    })
+    db.write_offers(conn, [offer], "2026-08-12")
+
+    metrics = quality.snapshot_metrics(conn, "2026-08-12", ALIASES)
+    coverage = metrics["stored_alias_coverage_rate"]
+    assert coverage.value == pytest.approx(1 / 2)
+    assert coverage.detail == "comarch xlx1"
+    # the old name carried a different definition and must not be continued under it
+    assert "alias_coverage_rate" not in metrics
+    conn.close()
+
+
 # --- Snapshot metrics --------------------------------------------------------
 
 

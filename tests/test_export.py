@@ -76,6 +76,20 @@ def test_the_hash_is_stable_across_exports():
     assert len(export.hash_offer_id("a1")) == config.EXPORT_ID_LENGTH
 
 
+def test_internal_provenance_stays_out_of_the_artifact(dataset):
+    """`raw_name` is bookkeeping for the repair loop, not part of the published dataset.
+
+    ADR 0002 promises normalized attributes; a raw technology string is source free text,
+    and for rows seeded by migration v5 it is not even the original one.
+    """
+    conn, out = dataset
+    export.write_dataset(conn, out)
+
+    technologies = pd.read_parquet(out / "offer_technologies.parquet")
+    assert "raw_name" not in technologies.columns
+    assert "technology" in technologies.columns  # the normalized name still ships
+
+
 def test_analysable_columns_survive_redaction(dataset):
     """Redaction must cost listing detail, not market detail."""
     _, out = dataset

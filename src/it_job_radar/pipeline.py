@@ -25,7 +25,8 @@ from it_job_radar import config, db, export, normalize, quality, sampling
 from it_job_radar.site import build as site_build
 from it_job_radar.collect import theprotocol
 
-_UNMATCHED_IN_DETAIL = 20
+# The metric whose detail is the working end of the report: the names to curate next.
+_COVERAGE_METRIC = "stored_alias_coverage_rate"
 
 
 def _now() -> str:
@@ -108,16 +109,8 @@ def _record_quality_metrics(
     conn, snapshot_id: int, today: str, context: normalize.Normalization
 ) -> None:
     """Write the instrument panel: how much we hold, how curated it is, how thin it gets."""
-    for metric, measured in quality.snapshot_metrics(conn, today).items():
+    for metric, measured in quality.snapshot_metrics(conn, today, context.tech_aliases).items():
         db.write_snapshot_stat(conn, snapshot_id, today, metric, measured.value, measured.detail)
-
-    coverage = quality.stored_alias_coverage(conn, context.tech_aliases)
-    detail = ", ".join(
-        f"{name}x{count}" for name, count in coverage.top_unmatched(_UNMATCHED_IN_DETAIL)
-    )
-    db.write_snapshot_stat(
-        conn, snapshot_id, today, "alias_coverage_rate", coverage.rate, detail or None
-    )
 
 
 def _record_frame_metrics(conn, snapshot_id: int, today: str, delta: db.FrameDelta) -> None:
@@ -148,6 +141,10 @@ def observe(session=None) -> db.FrameDelta:
         )
         delta = _sync_frame(conn, entries, today, context)
         _record_frame_metrics(conn, snapshot_id, today, delta)
+        # Observation is where the alias repair runs, so it is also where its effect has to
+        # be recorded. Measuring only on `collect` would date a curation gain to the next
+        # collection, or lose it when collections are sparse.
+        _record_quality_metrics(conn, snapshot_id, today, context)
         fetched, live = db.coverage(conn, today)
     finally:
         conn.close()
@@ -268,22 +265,19 @@ def quality_report(conn=None) -> list[quality.Violation]:
     conn = conn or db.connect()
     try:
         today = date.today().isoformat()
+        # Measured live against the dictionary on disk rather than read back from the last
+        # run, so an edit to the YAML shows up here immediately — the point of a loop.
+        metrics = quality.snapshot_metrics(conn, today)
         print(f"[quality] state on {today}")
-        for metric, measured in quality.snapshot_metrics(conn, today).items():
-            suffix = f"  ({measured.detail})" if measured.detail else ""
-            print(f"  {metric:<28} {measured.value:>8.3f}{suffix}")
+        for metric, measured in metrics.items():
+            suffix = f"  ({measured.detail})" if metric != _COVERAGE_METRIC and measured.detail else ""
+            print(f"  {metric:<30} {measured.value:>8.3f}{suffix}")
 
-        # Measured live against the current dictionary rather than read back from the last
-        # collect, so an edit to the YAML shows up here immediately — which is the whole
-        # point of a feedback loop.
-        context = normalize.load_normalization()
-        coverage = quality.stored_alias_coverage(conn, context.tech_aliases)
-        print(f"  {'alias_coverage_rate':<28} {coverage.rate:>8.3f}")
-        unmatched = coverage.top_unmatched(_UNMATCHED_IN_DETAIL)
+        unmatched = metrics[_COVERAGE_METRIC].detail
         if unmatched:
             print("\n[quality] technology names the dictionary missed, most costly first:")
-            for name, count in unmatched:
-                print(f"  {name}x{count}")
+            for item in unmatched.split(", "):
+                print(f"  {item}")
             print("  -> add the real ones to data/normalization/tech_aliases.yaml,")
             print("     then run `pipeline observe` to re-resolve what is already stored")
 
