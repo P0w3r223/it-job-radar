@@ -294,7 +294,7 @@ lead (24), intern (11), head (4).
   </tbody>
 </table>
 <figure>
-  <div class="chart-wrap"><svg class="chart" viewBox="0 0 720 210" width="720" height="210" role="img" aria-label="Coverage accumulated run by run (offers)" xmlns="http://www.w3.org/2000/svg"><title>Coverage accumulated run by run (offers)</title><line class="axis-line" x1="58" x2="624" y1="168" y2="168"></line><text class="axis" x="624" y="18" text-anchor="end">of 6 603 listed</text><text class="axis" x="50" y="172" text-anchor="end">0</text><polyline class="series" points="58.0,168.0 152.3,151.2 246.7,151.2 341.0,151.2 435.3,98.0 529.7,98.0 624.0,44.8"></polyline><circle class="series-dot observed" cx="58.0" cy="168.0" r="4"></circle><text class="axis" x="58.0" y="186" text-anchor="middle">2026-08-11</text><circle class="series-dot" cx="152.3" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="246.7" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="341.0" cy="151.2" r="4"></circle><text class="axis" x="341.0" y="186" text-anchor="middle">2026-08-12</text><circle class="series-dot" cx="435.3" cy="98.0" r="4"></circle><circle class="series-dot observed" cx="529.7" cy="98.0" r="4"></circle><circle class="series-dot" cx="624.0" cy="44.8" r="4"></circle><text class="bar-value" x="634.0" y="48.8">681 (10.3%)</text><text class="axis" x="58" y="204">7 runs, offers with attributes collected</text></svg></div>
+  <div class="chart-wrap"><svg class="chart" viewBox="0 0 720 210" width="720" height="210" role="img" aria-label="Coverage accumulated run by run (offers)" xmlns="http://www.w3.org/2000/svg"><title>Coverage accumulated run by run (offers)</title><line class="axis-line" x1="58" x2="624" y1="168" y2="168"></line><text class="axis" x="624" y="18" text-anchor="end">of 6 603 listed</text><text class="axis" x="50" y="172" text-anchor="end">0</text><polyline class="series" points="58.0,168.0 138.9,151.2 219.7,151.2 300.6,151.2 381.4,98.0 462.3,98.0 543.1,44.8 624.0,44.8"></polyline><circle class="series-dot observed" cx="58.0" cy="168.0" r="4"></circle><text class="axis" x="58.0" y="186" text-anchor="middle">2026-08-11</text><circle class="series-dot" cx="138.9" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="219.7" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="300.6" cy="151.2" r="4"></circle><text class="axis" x="300.6" y="186" text-anchor="middle">2026-08-12</text><circle class="series-dot" cx="381.4" cy="98.0" r="4"></circle><circle class="series-dot observed" cx="462.3" cy="98.0" r="4"></circle><circle class="series-dot" cx="543.1" cy="44.8" r="4"></circle><circle class="series-dot observed" cx="624.0" cy="44.8" r="4"></circle><text class="bar-value" x="634.0" y="48.8">681 (10.3%)</text><text class="axis" x="58" y="204">8 runs, offers with attributes collected</text></svg></div>
   <figcaption>
     One slot per recorded run, not per day — runs sit minutes or days apart, and spacing
     them along a date axis would draw a rate nobody measured. A filled marker is a run that
@@ -309,7 +309,7 @@ lead (24), intern (11), head (4).
   Presence is complete — one sitemap request identifies every live offer — while
   attributes are fetched at most once per offer under a bounded daily budget. Coverage
   therefore grows over time without ever increasing load on the source. This is the
-  evidence for that claim rather than the claim itself: 7 runs so far.
+  evidence for that claim rather than the claim itself: 8 runs so far.
 </p>
 
 <h2>Method, and what it cannot tell you</h2>
@@ -511,7 +511,7 @@ ORDER BY offers DESC, work_mode
   <p>
     Built 2026-08-12 from snapshot
     <time datetime="2026-08-12">2026-08-12</time>,
-    commit <code>5badcb7</code> ·
+    commit <code>405fbd8</code> ·
     <a href="data/manifest.json">manifest</a> ·
     <a href="https://github.com/P0w3r223/it-job-radar">source on GitHub</a>
   </p>
