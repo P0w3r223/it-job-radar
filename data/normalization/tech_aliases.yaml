@@ -106,7 +106,10 @@ sap: []
 abap: ["sap abap"]
 salesforce: []
 "microsoft dynamics": [dynamics 365, "ms dynamics"]
-"power platform": ["microsoft power platform", "power apps", powerapps, "power automate"]
+"power platform": [
+  "microsoft power platform", "power apps", powerapps, "power automate",
+  "microsoft power apps", "model-driven apps",
+]
 
 # Infrastructure / administration
 "windows server": []
@@ -145,3 +148,87 @@ android: []
 ios: []
 dns: []
 kaggle: []
+
+# Third pass over the same report, after 300 more offers widened the vocabulary. The line
+# drawn in the first pass held, with one clarification worth writing down: an entry earns
+# its place by naming a *thing* — a product, a language, a protocol, a technique that has a
+# name — and preferably by unifying spellings this source actually varies. Ways of working
+# (agile, itil, prince2, itsm, stakeholder management) stay out for the reason they did
+# before. So do bare activity words (api, cloud computing, data modeling, erp, cloud saas):
+# they already reach the data under their own name, and giving them a canonical form that
+# unifies nothing would move the coverage metric without making any chart truer.
+
+# Data / analytics
+"microsoft fabric": [fabric, "ms fabric"]  # bare "fabric" is a judgement: in this market it
+                                           # is Microsoft's, not Hyperledger's or Python's
+airflow: ["apache airflow"]
+numpy: []
+hadoop: ["apache hadoop"]
+elasticsearch: [elastic, "elastic search"]
+"palantir foundry": [foundry]
+tableau: []
+etl: [elt, "etl/elt"]
+nosql: ["no sql"]
+"machine learning": [ml]
+
+# Languages and query languages
+"c": []
+"r": []
+"pl/sql": [plsql, "pl sql"]
+soql: []
+# No "salesforce apex" alias: at the fuzzy threshold it also swallows "salesforce api",
+# which is a different thing entirely, and the source writes the bare name anyway.
+apex: []
+
+# Testing, build, quality
+junit: []
+jest: []
+gradle: []
+sonarqube: [sonar, "sonar qube"]
+soapui: ["soap ui"]
+
+# Platforms and techniques
+openshift: ["red hat openshift"]
+openstack: []
+helm: []
+"aws cdk": [cdk]
+rxjs: []
+pinecone: []
+"infrastructure as code": [iac, "iac (infrastructure as code)"]
+microservices: [microservice, "micro services"]
+rag: ["retrieval augmented generation", "retrieval-augmented generation"]
+
+# Microsoft estate
+"microsoft 365": ["office 365", m365, o365]
+sharepoint: ["microsoft sharepoint"]
+intune: ["microsoft intune"]
+"microsoft copilot studio": ["copilot studio"]
+windows: ["microsoft windows"]
+macos: ["mac os", osx, "os x"]
+github: ["git hub"]
+"dynamics 365 customer engagement": [
+  "ce (microsoft dynamics 365 customer engagement)", "dynamics 365 ce",
+]
+
+# Salesforce estate — kept as distinct products rather than folded into `salesforce`,
+# which would erase which cloud an offer actually asks for.
+"salesforce sales cloud": ["sales cloud", "sales cloud (salesforce)"]
+"salesforce service cloud": ["service cloud", "service cloud (salesforce)"]
+"salesforce lightning web components": [
+  "lwc (salesforce lightning web components)", lwc, "lightning web components",
+]
+
+# Vendor platforms
+"oracle e-business suite": [ebs, "ebs (oracle e-business suite)"]
+teamcenter: ["teamcenter/plm", "siemens teamcenter"]
+"autodesk construction cloud": []
+"autodesk platform services": ["autodesk platform services aps"]
+"fusion 360": [fusion360]
+"tacton cpq": []
+calypso: []
+"sap fi": []
+adobe photoshop: [photoshop]
+
+# Networking
+"tcp/ip": ["tcp ip", tcpip]
+dhcp: []
