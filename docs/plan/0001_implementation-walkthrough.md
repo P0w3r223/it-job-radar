@@ -437,6 +437,15 @@ still require several collection runs across distinct days.
 
 - **7.1** Per-dimension dated metrics (top technologies, medians per seniority) written
   every run, so trends are computable at all — today `snapshot_stats` holds two numbers.
+  **Done 2026-08-12.** Migration v7 adds `snapshot_dimension_metrics`
+  (`snapshot_id, date, metric, dimension, value, n`, keyed on the first three so a rerun
+  replaces rather than doubles). `analytics/history.py` measures the points **from the
+  published Parquet with the same named queries the page runs**, which is what keeps one
+  definition per metric; the cost is a two-phase write in `export.publish`, because a run
+  cannot appear in the dataset its own metrics are measured from until they exist. `n` is
+  per-metric rather than conventional: the analysed-offer count for a technology (offers
+  list several, so summing over technologies is not a base), the group's own total for the
+  headline segment, the salary rows behind a median. First run recorded 102 points.
 - **7.2** Coverage-over-time chart: unique offers ever seen vs. the current base size —
   the visible proof that bounded, polite sampling accumulates.
 - **7.3** Survival analysis on cohort B (Kaplan-Meier over `first_seen`/`last_seen`, with
@@ -463,27 +472,23 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 ## Remaining work, in the order I would do it
 
-State at the end of the 2026-08-12 session: phases 0-6 complete except 6.5, the interactive
-layer dropped on a measurement, 135 tests green, 24 commits on
-`feat/v2-browser-side-analytics` (branched from `main`, **not merged**). Working tree clean;
-`.claude/` deliberately untracked.
+State after the second 2026-08-12 session: **v2 is merged to `main`** (PR #3, `test` and the
+drift guard green), phases 0-7.1 complete except 6.5, the interactive layer dropped on a
+measurement, 146 tests green. Coverage 10.3% (681 of 6603). The dated series exists but holds
+**one point per metric** — every trend below is waiting on days, not on code.
 
 ### Next session, in order
 
 **1. `pipeline observe`, first thing.** Not ceremony: the flow cohort is the only one that
-can carry survival analysis, and it only grows by being observed. Two observations exist
+can carry survival analysis, and it only grows by being observed. Two dates exist so far
 (2026-08-11, 2026-08-12); 7.3 wants roughly two weeks. A `collect --budget 300 --seed <date>`
-after it is optional but cheap, and every run tightens the junior finding further.
+after it is optional but cheap, and every run tightens the junior finding further. Since
+7.1 landed, `export` after a run is no longer optional book-keeping — it is what records
+that day's point, and a day not exported is a hole in every series.
 
-**2. Open the PR and merge (blocks everything below).** The branch carries the whole v2:
-sampling design, quality layer, analytics, export, page, publication guards, the review
-fixes and the ADR 0001 amendment. Body should lead with the finding and the ADR reversal,
-because those are the two things a reviewer should see first. CI must pass `test`, `drift`
-and the manifest check before merge.
-
-**3. Switch GitHub Pages to the workflow source — after the merge, never before.** The
-repository is on `build_type: legacy` (branch `main`, path `/docs`). The `deploy` job has to
-exist on `main` first, or publishing stops until it does:
+**2. Switch GitHub Pages to the workflow source.** The repository is still on
+`build_type: legacy` (branch `main`, path `/docs`), while the `deploy` job now exists on
+`main` — which is the order that makes the switch safe:
 
 ```bash
 gh api -X PUT repos/P0w3r223/it-job-radar/pages -f build_type=workflow
@@ -491,28 +496,26 @@ gh api -X PUT repos/P0w3r223/it-job-radar/pages -f build_type=workflow
 
 Then push once and confirm the run appears in Actions and the live page still resolves.
 
-**4. Portfolio index (6.5).** Two acts, and the second is easy to forget: (a) rewrite the A2
+**3. Portfolio index (6.5).** Two acts, and the second is easy to forget: (a) rewrite the A2
 row and the "Live now" entry in `current_projects` — the distinguishing claims are now the
 presence/attributes sampling split, the measured quality layer with a contract, and one SQL
 definition per published metric shown verbatim; **do not** describe browser-side analytics,
 which ADR 0001 now rejects; (b) bump the `it-job-radar` submodule pointer to the merged
 commit, following the repository's existing `chore/bump-*` branch convention.
 
-**5. Phase 7.1 — dated per-dimension metrics.** Startable immediately and the prerequisite
-for every trend: today `snapshot_stats` holds frame and quality numbers, so top technologies
-and medians per seniority cannot be plotted over time at all. Write them per run, keyed on
-`snapshot_id`.
+**4. Phase 7.2 — coverage over time.** Unique offers ever seen against the current base
+size: the visible proof that bounded, polite sampling accumulates. The numbers are already
+dated in `snapshot_stats` (`coverage_fetched`, `coverage_share`, seven runs deep), so this
+is a chart and a query, not a data problem.
 
-**6. Phase 7.2 — coverage over time.** Unique offers ever seen against the current base
-size: the visible proof that bounded, polite sampling accumulates. Needs only 7.1 and a few
-more observations.
-
-**7. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
+**5. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
 with right censoring for offers still listed. Cohort A (`stock`) is excluded by construction
-— left truncation, see ADR 0003. Wants ~2 weeks of observations from 2026-08-12.
+— left truncation, see ADR 0003. Wants ~2 weeks of observations from 2026-08-12; the flow
+cohort currently holds 210 offers and **no exits at all**, so there is nothing yet to fit.
 
-**8. Phase 7.4 — technology movement between snapshots**, with no trend line drawn under a
-minimum series length.
+**6. Phase 7.4 — technology movement between snapshots**, drawn from
+`snapshot_dimension_metrics`, with no trend line under a minimum series length — a rule that
+matters immediately, because the series is one point long.
 
 Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
 (regression controlling for seniority and city), and the dataset export that P4
@@ -527,7 +530,13 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
   commit caused, with a remediation that cannot work locally.
 - **`pipeline verify` covers the drift the page diff cannot see** — a stale manifest
   reproduces itself, because the page is rebuilt from it.
-- **Coverage is 5.9%** (387 of 6603 listed offers). The junior finding rests on 47 offers,
+- **`export` is what records a day's series point.** Skipping it after `observe` or
+  `collect` loses that run's row in `snapshot_dimension_metrics` permanently: the dataset
+  holds the market's current state, not a replayable log of past views of it.
+- **`.gitattributes` pins `docs/index.html` to LF.** Without it a Windows checkout converts
+  the committed page to CRLF and every local rebuild reports a stale page — a failure with
+  no commit behind it, which cost a debugging detour once already.
+- **Coverage is 10.3%** (681 of 6603 listed offers). The junior finding rests on 68 offers,
   above `MIN_STRATUM_N`; more `collect` runs tighten it further.
 
 ## Open questions
