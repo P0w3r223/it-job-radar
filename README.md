@@ -40,11 +40,18 @@ toward long-lived postings.
 
 ## Architecture
 
-The site is static and the analysis runs in the reader's browser
-([ADR 0001](docs/adr/0001_browser-side-analytics-stack.md)): a redacted Parquet dataset is
-committed to the repository, and DuckDB queries it — the same `.sql` files the Python
-pipeline runs. One definition per metric, so a number on the page and a number in the
-notebook cannot drift apart, and the query behind every chart is shown next to it.
+Every published metric is defined exactly once, as a `.sql` file, and DuckDB executes it
+over a redacted Parquet dataset that is committed to this repository. The page, the
+notebook and the tests all run those same files, so a number in one cannot drift from a
+number in another — and the query behind every chart is printed next to it, verbatim,
+rather than described.
+
+The dataset is a download, not a private input: a reader who wants a question the page
+does not answer can run the same queries against the same file. Shipping DuckDB-WASM to do
+that filtering *in* the page was the original plan and was dropped once the bundle was
+measured at 21–37 MB against a 241 kB dataset —
+[ADR 0001](docs/adr/0001_browser-side-analytics-stack.md) records the numbers and the
+reversal.
 
 ```
 src/it_job_radar/

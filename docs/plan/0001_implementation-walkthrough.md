@@ -27,7 +27,7 @@ in the concept catalogue feeds phases beyond that.
 | 2 — Quality layer | **done** |
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
-| 5 — Site | 5.1, 5.2, 5.5 and 5.6 **done** (server-rendered page, inline-SVG charts, honesty gate, deprecated path retired); 5.3 and 5.4 (DuckDB-WASM layer) remain |
+| 5 — Site | **done** — 5.1, 5.2, 5.5, 5.6 shipped; 5.4 shipped as the verbatim-SQL panel; 5.3 and the query playground **dropped 2026-08-12** on the measured bundle size (ADR 0001 amendment) |
 | 6 — Publication | 6.4 **done** (README rebuilt finding-first, About metadata and topics updated, ADR pointers added to the research doc); 6.1-6.3 and 6.5 remain |
 | 7 — Trends and survival | blocked on repeated observations |
 
@@ -468,9 +468,13 @@ deploy into an action. Until this exists, a stale page can still be published si
 `config.FIGURES_DIR` and the stale PNGs are gone; the runtime now installs nothing that
 only the notebook uses.
 
-**4. Interactive layer (5.3, 5.4).** Valuable but not urgent: the page is complete without
-it, and it is the one step that puts ~3 MB of vendored WASM into the repository. Decide
-open question 3 before starting.
+**4. ~~Interactive layer (5.3, 5.4).~~ Dropped 2026-08-12, on a measurement.** The bundle
+this plan costed at ~3 MB is 21.1 MB raw at the oldest practical pin and 37.5 MB at the
+current one — roughly 4 MB and 8 MB respectively once stored in git, against a 241 kB
+dataset. No release since 1.24 is smaller, so no pin fixes it. The verbatim-SQL half of 5.4
+was already shipped with the page; the filter bar and the query playground are not, and the
+dataset being downloadable is what carries the capability instead. See the ADR 0001
+amendment for the table and the reasoning.
 
 **5. Portfolio index (6.5).** Must be last: the submodule pointer should reference the
 merged commit, so this follows the branch landing on `main`.
@@ -497,8 +501,10 @@ it from a direction to a measurement; further `collect` runs tighten it further.
    well under what that fit implied, and an inflow the 300 budget covers in full
    (`inflow_capture_rate = 1.0`). One interval is not a rate; confirm over ~5 days before
    fixing `DEFAULT_FETCH_BUDGET`.
-3. Vendored WASM bundle size in practice — if it materially bloats the repository,
-   reconsider a pinned CDN with the privacy trade-off documented.
+3. ~~Vendored WASM bundle size in practice.~~ **Resolved 2026-08-12 by measuring it:**
+   21.1 MB (pin 1.28.0) to 37.5 MB (1.32.0) raw, ~4–8 MB stored in git, against a 241 kB
+   dataset. A pinned CDN was rejected for the same reason the Google Fonts link was, so the
+   interactive layer is dropped rather than relocated. ADR 0001 carries the amendment.
 4. ~~`MIN_STRATUM_N` value~~ **Resolved 2026-08-12 by data, not by argument:** the
    collect took junior from 19 to 47, above the conventional 30, so the threshold stays
    where it is and the headline segment is no longer marked thin. Three levels remain
