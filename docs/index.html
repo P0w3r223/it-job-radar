@@ -142,6 +142,18 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .range-dot.high { fill: var(--accent); opacity: 0.55; }
 .chart .range.muted ~ .range-dot, .chart .range-dot.muted { fill: var(--accent-soft); }
 .chart .ci { stroke: var(--muted); stroke-width: 1.5; opacity: 0.75; }
+/* Accumulation: one series, so identity needs no colour — a filled marker is a run that
+   fetched pages, a hollow one a run that only observed the frame. */
+.chart .series {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart .series-dot { fill: var(--accent); }
+.chart .series-dot.observed { fill: var(--bg); stroke: var(--accent); stroke-width: 1.5; }
+.chart .axis-line { stroke: var(--border); stroke-width: 1; }
 
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
@@ -281,10 +293,23 @@ lead (24), intern (11), head (4).
     <tr><th>Snapshot age</th><td class="num">0 days</td></tr>
   </tbody>
 </table>
+<figure>
+  <div class="chart-wrap"><svg class="chart" viewBox="0 0 720 210" width="720" height="210" role="img" aria-label="Coverage accumulated run by run (offers)" xmlns="http://www.w3.org/2000/svg"><title>Coverage accumulated run by run (offers)</title><line class="axis-line" x1="58" x2="624" y1="168" y2="168"></line><text class="axis" x="624" y="18" text-anchor="end">of 6 603 listed</text><text class="axis" x="50" y="172" text-anchor="end">0</text><polyline class="series" points="58.0,168.0 152.3,151.2 246.7,151.2 341.0,151.2 435.3,98.0 529.7,98.0 624.0,44.8"></polyline><circle class="series-dot observed" cx="58.0" cy="168.0" r="4"></circle><text class="axis" x="58.0" y="186" text-anchor="middle">2026-08-11</text><circle class="series-dot" cx="152.3" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="246.7" cy="151.2" r="4"></circle><circle class="series-dot observed" cx="341.0" cy="151.2" r="4"></circle><text class="axis" x="341.0" y="186" text-anchor="middle">2026-08-12</text><circle class="series-dot" cx="435.3" cy="98.0" r="4"></circle><circle class="series-dot observed" cx="529.7" cy="98.0" r="4"></circle><circle class="series-dot" cx="624.0" cy="44.8" r="4"></circle><text class="bar-value" x="634.0" y="48.8">681 (10.3%)</text><text class="axis" x="58" y="204">7 runs, offers with attributes collected</text></svg></div>
+  <figcaption>
+    One slot per recorded run, not per day — runs sit minutes or days apart, and spacing
+    them along a date axis would draw a rate nobody measured. A filled marker is a run that
+    spent its page budget; a hollow one only re-read the sitemap, which costs a handful of
+    requests and moves the frame rather than the coverage. The scale is the accumulation's
+    own, not the market's: against 6603 listed offers this
+    whole climb is a flat line, so the distance still to go is written on the chart rather
+    than drawn — the share on the final point is the honest reading of it.
+  </figcaption>
+</figure>
 <p class="note">
   Presence is complete — one sitemap request identifies every live offer — while
   attributes are fetched at most once per offer under a bounded daily budget. Coverage
-  therefore grows over time without ever increasing load on the source.
+  therefore grows over time without ever increasing load on the source. This is the
+  evidence for that claim rather than the claim itself: 7 runs so far.
 </p>
 
 <h2>Method, and what it cannot tell you</h2>
@@ -340,6 +365,36 @@ WHERE wm.work_mode = $work_mode
 
 -- Bootstrapped by the caller, so the row order is part of the published figure.
 ORDER BY group_name, monthly_from, monthly_to
+</code></pre>
+</details>
+<details>
+  <summary>coverage_over_time.sql</summary>
+  <pre><code>-- How the analysed sample accumulated, run by run.
+--
+-- The claim this figure exists to check: a bounded, polite collector reaches a useful share
+-- of the market by coming back, not by fetching harder. Every run appears — an `observe`
+-- costs a handful of requests and moves the frame only, a `collect` also spends its bounded
+-- page budget — so the flat steps are as much a part of the evidence as the rises.
+--
+-- The series is ordinal, not a time axis. Runs sit minutes or days apart, and spacing them
+-- evenly along a date axis would suggest a rate nobody measured.
+--
+-- `offers_listed` is what the source published that day: the denominator of coverage, and
+-- the ceiling the accumulation is climbing towards. A run recording one number but not the
+-- other cannot be plotted and is left out rather than drawn against a missing base.
+SELECT
+    s.snapshot_id   AS snapshot_id,
+    s.observed_date AS observed_date,
+    s.kind          AS kind,
+    MAX(CASE WHEN st.metric = &#39;coverage_fetched&#39; THEN st.value END) AS offers_analysed,
+    MAX(CASE WHEN st.metric = &#39;frame_live&#39; THEN st.value END)       AS offers_listed
+FROM snapshots s
+JOIN snapshot_stats st ON st.snapshot_id = s.snapshot_id
+GROUP BY s.snapshot_id, s.observed_date, s.kind
+HAVING MAX(CASE WHEN st.metric = &#39;coverage_fetched&#39; THEN st.value END) IS NOT NULL
+   AND MAX(CASE WHEN st.metric = &#39;frame_live&#39; THEN st.value END) IS NOT NULL
+-- Run order, which is the only order that makes an accumulation monotonic.
+ORDER BY s.snapshot_id
 </code></pre>
 </details>
 <details>
