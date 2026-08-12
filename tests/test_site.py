@@ -141,6 +141,18 @@ def test_build_without_a_manifest_says_what_to_run(tmp_path):
         build.gather(tmp_path / "nothing")
 
 
+def test_rebuilding_the_same_dataset_gives_the_same_bytes(site, tmp_path):
+    """What the CI drift guard rests on: the page is a function of the dataset alone.
+
+    A build that embedded the wall clock would differ on every run, and the guard would
+    then be unable to tell a stale page from a fresh one.
+    """
+    _, dataset = site
+    first = build.build(tmp_path / "once", dataset_dir=dataset)
+    second = build.build(tmp_path / "again", dataset_dir=dataset)
+    assert second.read_text(encoding="utf-8") == first.read_text(encoding="utf-8")
+
+
 # --- Chart rendering ---------------------------------------------------------
 
 
