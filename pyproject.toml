@@ -13,16 +13,22 @@ dependencies = [
     "requests>=2.32,<3",
     "pandas>=2.2,<3",
     "numpy>=1.26,<3",
-    "matplotlib>=3.9,<4",
-    "seaborn>=0.13,<0.14",
     "pyyaml>=6.0,<7",
     "rapidfuzz>=3.9,<4",
+    # Analytical engine + published artifact: DuckDB runs the same SQL the site runs
+    # in the browser (ADR 0001); pyarrow writes the Parquet the page downloads.
+    "duckdb>=1.1,<2",
+    "pyarrow>=17,<21",
+    "jinja2>=3.1,<4",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3,<9",
     "jupyterlab>=4.2,<5",
+    # The notebook draws its own figures; the published site renders inline SVG and
+    # needs no plotting library at runtime.
+    "matplotlib>=3.9,<4",
 ]
 
 [tool.setuptools.packages.find]
