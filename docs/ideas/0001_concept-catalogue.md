@@ -64,7 +64,12 @@ renders) for a defensible reason: the dataset is small, immutable between snapsh
 public. It also makes the next concept possible.
 
 **Cost.** Moderate — export layer, a vendored WASM bundle, a lazy-loading budget.
-**Decision.** Accepted — ADR 0001.
+**Decision.** Accepted — ADR 0001. **Half reversed 2026-08-12:** the dataset *is* shipped
+and is the artifact, but it is not queried in the reader's browser. The WASM bundle costed
+as "moderate" here measures 21-37 MB against a 241 kB dataset, so the querying stayed in the
+pipeline and the reader gets the file plus the exact SQL instead. The inversion this pillar
+argues for survives; the runtime that would have expressed it did not. See the ADR 0001
+amendment.
 
 ## Pillar 2 — One definition of every metric
 

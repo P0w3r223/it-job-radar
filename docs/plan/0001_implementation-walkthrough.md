@@ -1,7 +1,7 @@
 # Implementation Walkthrough — it-job-radar v2
 
-Date: 2026-08-11
-Status: draft
+Date: 2026-08-11 (living; last revised 2026-08-12)
+Status: phases 0-6 complete except 6.5
 Author: P0w3r223 + Claude
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0001_browser-side-analytics-stack.md`,
 `docs/adr/0002_published-artifact-policy.md`
@@ -28,7 +28,7 @@ in the concept catalogue feeds phases beyond that.
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
 | 5 — Site | **done** — 5.1, 5.2, 5.5, 5.6 shipped; 5.4 shipped as the verbatim-SQL panel; 5.3 and the query playground **dropped 2026-08-12** on the measured bundle size (ADR 0001 amendment) |
-| 6 — Publication | 6.4 **done** (README rebuilt finding-first, About metadata and topics updated, ADR pointers added to the research doc); 6.1-6.3 and 6.5 remain |
+| 6 — Publication | 6.1-6.4 **done** (single CLI path, drift guard, Pages action, README rebuilt finding-first with About metadata and ADR pointers); 6.5 waits on the merge |
 | 7 — Trends and survival | blocked on repeated observations |
 
 Two deliberate deviations, recorded so they are not mistaken for oversights:
@@ -81,9 +81,10 @@ src/it_job_radar/
   analyze.py                   # thin facade -> analytics.engine (notebook compatibility)
   site/
     build.py                   # NEW  Jinja2 render -> docs/
+    charts.py                  # NEW  inline SVG, theme-aware, every figure carries its n
     templates/index.html.j2    # NEW
-    assets/{app.js,styles.css} # NEW
-  pipeline.py                  # CLI: collect | export | site build | quality report
+    assets/styles.css          # NEW  (no app.js: the interactive layer was dropped)
+  pipeline.py                  # CLI: observe | collect | quality | export | site | verify
 
 data/
   job_offers.db                # local, git-ignored, unredacted
@@ -93,14 +94,16 @@ data/
 
 docs/                          # published site (build output, committed)
   index.html
-  data/{offers,technologies,salaries,snapshots}.parquet
+  data/*.parquet               # one file per dataset table
   data/manifest.json
-  vendor/duckdb-wasm/          # pinned bundle
 ```
 
-Dependency additions: `duckdb`, `pyarrow`, `jinja2`. Removed from the runtime path once
-Phase 5 lands: `seaborn` (unused), and `matplotlib` moves to the `dev` extra — it stays
-for the notebook, but the site no longer renders PNGs.
+The `docs/vendor/duckdb-wasm/` directory this plan originally called for does not exist:
+the bundle was measured at 21-37 MB and the interactive layer dropped (ADR 0001 amendment).
+
+Dependency additions: `duckdb`, `pyarrow`, `jinja2`. Removed from the runtime path with
+phase 5.6: `seaborn` (unused), and `matplotlib` moved to the `dev` extra — it stays for the
+notebook, but nothing in the library imports a plotting package.
 
 ---
 
@@ -268,11 +271,13 @@ Done when: existing `tests/test_analyze.py` passes against the facade unchanged.
 **3.3 Parity test**
 Goal: the load-bearing test of this whole design — for each published metric, the
 DuckDB-over-Parquet result must equal the SQLite result computed from the system of
-record. It proves the export is faithful *and* that the browser sees the same numbers the
-pipeline does.
-Files: `tests/test_parity.py`.
+record. It proves the export is faithful *and* that a reader querying the published file
+gets the same numbers the pipeline does.
+Files: `tests/test_analytics.py` (parity section).
 Done when: parity holds for every named query on a fixture database, and deliberately
 corrupting the export makes the test fail.
+**Retired 2026-08-12 with phase 5.6** — the SQLite path it compared against is gone, so the
+tests went with it. What remains is the check that every query still parses and answers.
 
 **3.4 Uncertainty**
 Goal: medians published with a bootstrap confidence interval, and any stratum below
@@ -311,8 +316,8 @@ Done when: the budget is asserted in a test with a synthetic oversized frame.
 Goal: move the HTML out of the f-string in `report.py` into
 `site/templates/index.html.j2`; `site/build.py` gathers data and renders. This is the
 same I/O-from-logic split the collector already follows.
-Done when: `pipeline site build --out docs/` reproduces the current page's content from
-the template, and `report.py` is deleted or reduced to a deprecation shim.
+Done when: `pipeline site --out docs/` reproduces the current page's content from the
+template, and `report.py` is deleted or reduced to a deprecation shim.
 
 **5.2 Narrative and honesty**
 Goal: the page leads with a finding, not with "Overview" — the sibling portfolio sites
@@ -328,7 +333,9 @@ a stacked bar and invites misreading).
 Done when: no chart on the page lacks an `n`, and the junior section states its sample
 size in the visible copy.
 
-**5.3 Interactive layer**
+**5.3 Interactive layer — DROPPED 2026-08-12** (bundle measured at 21-37 MB; see the ADR
+0001 amendment). Kept here as written, because the reasoning that justified it is still
+sound and would apply again if the bundle shrank.
 Goal: lazy-load the vendored DuckDB-WASM bundle on first interaction; filter bar over
 seniority, city, work mode and contract kind; charts re-render from live query results
 via Observable Plot.
@@ -336,7 +343,9 @@ Files: `site/assets/app.js`, `docs/vendor/duckdb-wasm/`.
 Done when: filtering to `seniority = 'junior'` reproduces the numbers the Python engine
 computes for the same filter, and the page's first paint does not download the bundle.
 
-**5.4 Show SQL / playground**
+**5.4 Show SQL / playground — half shipped, half dropped 2026-08-12.**
+The verbatim query panel is on the page; the editable playground went with 5.3, since
+running a reader's own SQL needs the engine in the browser.
 Goal: each chart exposes the exact query behind it; an editable panel lets the reader run
 their own against the same artifact.
 Done when: the query text shown is read from the same `.sql` files Phase 3 executes — not
@@ -365,7 +374,7 @@ Done when: the page passes a manual a11y pass and renders correctly with JS off.
 ## Phase 6 — Publication
 
 **6.1 CLI**
-Goal: `pipeline collect | export | site build | quality report` as the only supported
+Goal: `pipeline observe | collect | quality | export | site | verify` as the only supported
 path to a published page.
 Done when: the manual copy from `reports/site/` to `docs/` no longer exists anywhere,
 including in the README.
@@ -388,9 +397,10 @@ Goal: the first screen a senior reader sees on GitHub matches what the code now 
 README still describes a stride sample, a `collect` command that no longer exists, and a
 site built from matplotlib PNGs.
 Content: the headline finding first (junior IT in Poland is mostly not development);
-the browser-side architecture with a link to ADR 0001; the presence/attributes split and
-the two cohorts with a link to ADR 0003; the redaction policy with a link to ADR 0002; the
-current CLI (`observe | collect | quality | export | site build`); what the published
+one SQL definition per published metric with a link to ADR 0001 and its amendment; the
+presence/attributes split and the two cohorts with a link to ADR 0003; the redaction policy
+with a link to ADR 0002; the current CLI
+(`observe | collect | quality | export | site | verify`); what the published
 dataset contains and what it deliberately cannot answer; the honest limitations
 (coverage share, thin strata, no scheduled collection).
 Also: repository **About** metadata — description and topics (`duckdb`, `parquet`,
@@ -406,9 +416,12 @@ site of its own — it is a README-only index whose projects are **git submodule
 is two separate acts and the second is easy to forget.
 Steps: (a) rewrite the A2 row and the "Live now" entry — the current text says "data
 engineering — collecting IT job offers, schema design, aggregating SQL, normalization,
-respectful scraping", which now undersells it; the distinguishing claims are browser-side
-analytics over a published Parquet artifact, a measured data-quality layer with a
-contract, and a sampling design that separates presence from attributes; (b) **bump the
+respectful scraping", which now undersells it; the distinguishing claims are a sampling
+design that separates presence from attributes, a measured data-quality layer with an
+enforced contract, and one SQL definition per published metric shown to the reader verbatim
+over a downloadable Parquet artifact. **Not** browser-side analytics — ADR 0001 rejects that
+half, and claiming it in the index would be the one place the portfolio contradicts its own
+decision record; (b) **bump the
 submodule pointer** for `it-job-radar` so the index actually references the new commit,
 following the repository's existing `chore/bump-*` branch convention.
 Done when: the A2 entry describes the rebuilt project, the submodule points at the new
@@ -444,50 +457,78 @@ still require several collection runs across distinct days.
 | Site content | Build-time assertions (every chart has `n`); manual a11y and JS-off pass |
 | Publication | CI drift guard: rebuild must equal committed `docs/` |
 
-Deferred: a Playwright smoke test asserting the browser numbers match the Python engine.
-Worth adding once the interactive layer stabilises; not worth its setup cost before then.
+The deferred Playwright smoke test is dropped with the interactive layer it would have
+tested: the page ships no JavaScript, so there are no browser-computed numbers to compare.
+Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 ## Remaining work, in the order I would do it
 
-State at the end of the 2026-08-11 session: phases 0-4 complete, phase 5 complete except
-its interactive layer, 129 tests green, eleven commits on
-`feat/v2-browser-side-analytics` (branched from `main`, not merged).
+State at the end of the 2026-08-12 session: phases 0-6 complete except 6.5, the interactive
+layer dropped on a measurement, 135 tests green, 24 commits on
+`feat/v2-browser-side-analytics` (branched from `main`, **not merged**). Working tree clean;
+`.claude/` deliberately untracked.
 
-**1. ~~Repository landing page (6.4).~~ Done 2026-08-12.** README rebuilt finding-first,
-About description and topics updated (`duckdb`, `parquet`, `duckdb-wasm`, `data-quality`),
-ADR pointers added to `docs/research/data-sources.md`.
+### Next session, in order
 
-**2. Publication guards (6.2, 6.3).** CI runs only `pytest` today. Add the drift guard —
-rebuild `docs/` from the committed dataset, fail on any difference — and move the Pages
-deploy into an action. Until this exists, a stale page can still be published silently.
+**1. `pipeline observe`, first thing.** Not ceremony: the flow cohort is the only one that
+can carry survival analysis, and it only grows by being observed. Two observations exist
+(2026-08-11, 2026-08-12); 7.3 wants roughly two weeks. A `collect --budget 300 --seed <date>`
+after it is optional but cheap, and every run tightens the junior finding further.
 
-**3. ~~Retire the deprecated path (5.6).~~ Done 2026-08-12.** The notebook now reads the
-*published* dataset through the named queries rather than the local database through
-`analyze.py`, which makes it reproducible by a reader and unable to drift from the page.
-`analyze.py`, its tests, the parity section, `seaborn`, the `matplotlib` runtime dependency,
-`config.FIGURES_DIR` and the stale PNGs are gone; the runtime now installs nothing that
-only the notebook uses.
+**2. Open the PR and merge (blocks everything below).** The branch carries the whole v2:
+sampling design, quality layer, analytics, export, page, publication guards, the review
+fixes and the ADR 0001 amendment. Body should lead with the finding and the ADR reversal,
+because those are the two things a reviewer should see first. CI must pass `test`, `drift`
+and the manifest check before merge.
 
-**4. ~~Interactive layer (5.3, 5.4).~~ Dropped 2026-08-12, on a measurement.** The bundle
-this plan costed at ~3 MB is 21.1 MB raw at the oldest practical pin and 37.5 MB at the
-current one — roughly 4 MB and 8 MB respectively once stored in git, against a 241 kB
-dataset. No release since 1.24 is smaller, so no pin fixes it. The verbatim-SQL half of 5.4
-was already shipped with the page; the filter bar and the query playground are not, and the
-dataset being downloadable is what carries the capability instead. See the ADR 0001
-amendment for the table and the reasoning.
+**3. Switch GitHub Pages to the workflow source — after the merge, never before.** The
+repository is on `build_type: legacy` (branch `main`, path `/docs`). The `deploy` job has to
+exist on `main` first, or publishing stops until it does:
 
-**5. Portfolio index (6.5).** Must be last: the submodule pointer should reference the
-merged commit, so this follows the branch landing on `main`.
+```bash
+gh api -X PUT repos/P0w3r223/it-job-radar/pages -f build_type=workflow
+```
 
-**6. Phase 7**, once repeated observations exist.
+Then push once and confirm the run appears in Actions and the live page still resolves.
+
+**4. Portfolio index (6.5).** Two acts, and the second is easy to forget: (a) rewrite the A2
+row and the "Live now" entry in `current_projects` — the distinguishing claims are now the
+presence/attributes sampling split, the measured quality layer with a contract, and one SQL
+definition per published metric shown verbatim; **do not** describe browser-side analytics,
+which ADR 0001 now rejects; (b) bump the `it-job-radar` submodule pointer to the merged
+commit, following the repository's existing `chore/bump-*` branch convention.
+
+**5. Phase 7.1 — dated per-dimension metrics.** Startable immediately and the prerequisite
+for every trend: today `snapshot_stats` holds frame and quality numbers, so top technologies
+and medians per seniority cannot be plotted over time at all. Write them per run, keyed on
+`snapshot_id`.
+
+**6. Phase 7.2 — coverage over time.** Unique offers ever seen against the current base
+size: the visible proof that bounded, polite sampling accumulates. Needs only 7.1 and a few
+more observations.
+
+**7. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
+with right censoring for offers still listed. Cohort A (`stock`) is excluded by construction
+— left truncation, see ADR 0003. Wants ~2 weeks of observations from 2026-08-12.
+
+**8. Phase 7.4 — technology movement between snapshots**, with no trend line drawn under a
+minimum series length.
 
 Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
 (regression controlling for seniority and city), and the dataset export that P4
 `pl-jobs-lora` consumes.
 
-**Not a task, but a decision.** Coverage is 5.9% (387 of 6603 listed offers) after the
-2026-08-12 collect. The junior finding now rests on 47 offers rather than 19, which moved
-it from a direction to a measurement; further `collect` runs tighten it further.
+### Standing operational notes
+
+- **Editing `tech_aliases.yaml` or `role_families.yaml` repairs stored data**, but only on
+  the next `observe` — both are re-derived every observation. Do not wait for a `collect`.
+- **`constraints.txt` pins what the page is built with.** Regenerate it on the publishing
+  machine whenever that environment changes, or the CI drift guard fails for a reason no
+  commit caused, with a remediation that cannot work locally.
+- **`pipeline verify` covers the drift the page diff cannot see** — a stale manifest
+  reproduces itself, because the page is rebuilt from it.
+- **Coverage is 5.9%** (387 of 6603 listed offers). The junior finding rests on 47 offers,
+  above `MIN_STRATUM_N`; more `collect` runs tighten it further.
 
 ## Open questions
 
