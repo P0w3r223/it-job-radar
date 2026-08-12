@@ -44,7 +44,7 @@ def dataset(tmp_path):
 
 def test_identifying_columns_never_reach_the_artifact(dataset):
     _, out = dataset
-    for table in export.DATASET_TABLES:
+    for table in config.DATASET_TABLES:
         columns = set(pd.read_parquet(out / f"{table}.parquet").columns)
         leaked = columns & set(config.REDACTED_COLUMNS)
         assert not leaked, f"{table} leaked {leaked}"
@@ -156,7 +156,7 @@ def test_publishing_an_oversized_artifact_is_refused(dataset, monkeypatch):
 def test_the_artifact_is_faithful_to_the_system_of_record(dataset):
     """Every published table must equal its redacted source, row for row."""
     conn, out = dataset
-    for table in export.DATASET_TABLES:
+    for table in config.DATASET_TABLES:
         expected = export.redact(db.read_table(conn, table))
         published = pd.read_parquet(out / f"{table}.parquet")
         pd.testing.assert_frame_equal(

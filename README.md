@@ -66,6 +66,7 @@ src/it_job_radar/
   analytics/queries/*.sql  # ONE definition per published metric
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression
+  analytics/history.py     # dated per-dimension metrics, measured with those same queries
   site/build.py            # Jinja2 + inline-SVG charts -> docs/
   pipeline.py              # CLI
 docs/data/                 # the published artifact: Parquet + manifest.json
@@ -85,6 +86,12 @@ So the dataset answers *market* questions — which technologies appear, what th
 ranges look like per seniority and contract kind, how the market splits by work mode —
 and deliberately cannot answer *listing* questions: who is hiring, and where to apply.
 
+`snapshot_dimension_metrics` is the same answers, dated: one row per run per metric per
+dimension — a technology's offer count, a seniority's median — each carrying the `n` it
+rests on. It is measured on every export with the same named queries the page runs, so a
+point in the series and a number on the page cannot disagree by method. The series starts
+at the first export that recorded it: a run that has passed cannot be measured again.
+
 ## Trusting the numbers
 
 - **A data contract** (`data/contract.yaml`) states required columns, value domains and
@@ -93,7 +100,7 @@ and deliberately cannot answer *listing* questions: who is hiring, and where to 
   `config.py` so the contract and the code cannot drift.
 - **Every figure carries its `n`.** The site build fails if a chart would publish values
   without counts. Strata below `MIN_STRATUM_N` are labelled and greyed rather than
-  silently plotted — today that is `head` (4), `intern` (6) and `lead` (18).
+  silently plotted — today that is `head` (4), `intern` (11) and `lead` (24).
 - **Medians carry a bootstrap interval.** This immediately earned its keep: the median B2B
   rate for `expert` once rested on n=4 with an interval from 140 to 28560 PLN — a number
   the page must not print as if it were solid.
