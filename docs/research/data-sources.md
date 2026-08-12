@@ -7,6 +7,23 @@ Related to: project A2, collector + legal/ethics
 
 ---
 
+**What this research became.** Three decisions carry it forward and supersede the
+collection sketch below wherever the two disagree:
+
+- [ADR 0003 — Sampling design](../adr/0003_sampling-design.md). The sitemap turned out to
+  contain the offer id, so presence is a free census and only *attributes* are sampled.
+  The child sitemap named at the bottom of this document is no longer hardcoded — the
+  collector discovers children from `sitemap_index.xml`, because how many there are is the
+  source's business, not ours.
+- [ADR 0002 — Published artifact policy](../adr/0002_published-artifact-policy.md). The
+  legal reasoning here (EU database *sui generis* right, GDPR art. 14) is what shaped
+  what may be *published*: derived analytical data, redacted so it cannot substitute for
+  the source.
+- [ADR 0001 — Browser-side analytics stack](../adr/0001_browser-side-analytics-stack.md).
+  Why the published artifact is Parquet queried in the reader's browser.
+
+---
+
 Synthesis of the research + a live probe of the sites (2026-07-17). The decision was
 driven as much by **legality/ToS** as by data richness: for a public portfolio project
 the source must clearly permit machine access.
