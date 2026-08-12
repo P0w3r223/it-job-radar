@@ -70,6 +70,15 @@ MIN_STRATUM_N = 30
 # Resamples behind every published median's confidence interval.
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_CONFIDENCE = 0.95
+# The seniority the page's headline is about, and therefore the one whose composition is
+# recorded run over run rather than only for the current snapshot.
+HEADLINE_SENIORITY = "junior"
+
+# --- Dated series (phase 7.1) ------------------------------------------------
+# How many technologies each run records. Deliberately wider than any chart shows: a
+# technology that enters the top twelve next month needs its earlier values to draw a line
+# at all, and a run that has passed cannot be measured again.
+HISTORY_TECHNOLOGY_LIMIT = 30
 
 # --- Published artifact (ADR 0002) -------------------------------------------
 # The dataset lives inside the published site: it *is* the artifact the page downloads,
@@ -77,6 +86,23 @@ BOOTSTRAP_CONFIDENCE = 0.95
 PUBLISH_DIR = PROJECT_ROOT / "docs"
 DATASET_DIR = PUBLISH_DIR / "data"
 MANIFEST_NAME = "manifest.json"
+# Tables that make up the dataset. Order is irrelevant to correctness, but keeping the
+# frame and the series last groups the "what exists" and "how it moved" tables after the
+# "what it contains" ones. Declared here rather than in export.py because the analytics
+# engine registers the same list as views, and a constant two modules share is
+# configuration — not the property of whichever one happens to write it.
+DATASET_TABLES = (
+    "offers",
+    "offer_seniority",
+    "offer_work_modes",
+    "offer_locations",
+    "offer_technologies",
+    "offer_salaries",
+    "snapshots",
+    "snapshot_stats",
+    "snapshot_dimension_metrics",
+    "sitemap_offers",
+)
 # A static site must not accumulate a database by accident. Exceeding this is an error.
 MAX_ARTIFACT_BYTES = 5_000_000
 SOURCE_NAME = "theprotocol.it"

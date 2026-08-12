@@ -11,7 +11,8 @@ Two things live here, and they answer different questions (ADR 0003):
   several tables so aggregating SQL stays clean.
 
 ``snapshots`` identifies a run (a snapshot is a run, not a date), and ``snapshot_stats``
-hangs dated metrics off it.
+hangs dated metrics off it. ``snapshot_dimension_metrics`` does the same for metrics that
+carry a dimension — a technology, a seniority — which a table of scalars has no room for.
 
 Re-writing an offer replaces its child rows, so re-running the collector is idempotent.
 Queries are parameterized; timestamps/dates are ISO text. Schema changes go through
@@ -80,6 +81,42 @@ def write_snapshot_stat(
         (snapshot_id, date, metric, float(value), detail),
     )
     conn.commit()
+
+
+def latest_snapshot(conn: sqlite3.Connection) -> tuple | None:
+    """The most recent run as ``(snapshot_id, kind, observed_date, started_at)``, or None.
+
+    "Latest" is the highest id rather than the newest date: two runs share a date routinely,
+    and only the id orders them.
+    """
+    return conn.execute(
+        "SELECT snapshot_id, kind, observed_date, started_at FROM snapshots "
+        "ORDER BY snapshot_id DESC LIMIT 1"
+    ).fetchone()
+
+
+def write_dimension_metrics(
+    conn: sqlite3.Connection,
+    snapshot_id: int,
+    date: str,
+    rows: list[tuple[str, str, float | None, int]],
+) -> int:
+    """Upsert one run's per-dimension metrics — ``(metric, dimension, value, n)``.
+
+    Keyed on ``(snapshot, metric, dimension)``, so exporting a run twice replaces its points
+    instead of doubling them: the published series can never gain a duplicate from a rerun.
+    """
+    payload = [
+        (snapshot_id, date, metric, dimension, None if value is None else float(value), int(n))
+        for metric, dimension, value, n in rows
+    ]
+    conn.executemany(
+        "INSERT OR REPLACE INTO snapshot_dimension_metrics "
+        "  (snapshot_id, date, metric, dimension, value, n) VALUES (?, ?, ?, ?, ?, ?)",
+        payload,
+    )
+    conn.commit()
+    return len(payload)
 
 
 # --- Population frame --------------------------------------------------------
@@ -386,7 +423,7 @@ def _technology_rows(conn: sqlite3.Connection) -> int:
 _READABLE_TABLES = frozenset({
     "offers", "offer_seniority", "offer_work_modes", "offer_locations",
     "offer_technologies", "offer_salaries", "snapshot_stats", "snapshots",
-    "sitemap_offers",
+    "snapshot_dimension_metrics", "sitemap_offers",
 })
 
 

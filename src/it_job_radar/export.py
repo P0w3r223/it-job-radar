@@ -23,24 +23,16 @@ from pathlib import Path
 import pandas as pd
 
 from it_job_radar import config, db, migrations, quality
+from it_job_radar.analytics import history
 
 
 class ArtifactTooLarge(RuntimeError):
     """Raised when the published dataset exceeds its size budget."""
 
-# Tables that make up the dataset. Order is irrelevant to correctness, but keeping the
-# frame last groups the "what exists" tables after the "what it contains" ones.
-DATASET_TABLES = (
-    "offers",
-    "offer_seniority",
-    "offer_work_modes",
-    "offer_locations",
-    "offer_technologies",
-    "offer_salaries",
-    "snapshots",
-    "snapshot_stats",
-    "sitemap_offers",
-)
+
+# The one table written twice per publication: a run cannot appear in the dataset its own
+# metrics are measured from until they have been measured. See `_record_series`.
+SERIES_TABLE = "snapshot_dimension_metrics"
 
 
 def hash_offer_id(offer_id: str) -> str:
@@ -77,11 +69,16 @@ def write_dataset(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     counts: dict[str, int] = {}
-    for table in DATASET_TABLES:
-        frame = redact(db.read_table(conn, table))
-        frame.to_parquet(out_dir / f"{table}.parquet", index=False)
-        counts[table] = len(frame)
+    for table in config.DATASET_TABLES:
+        counts[table] = _write_table(conn, table, out_dir)
     return counts
+
+
+def _write_table(conn: sqlite3.Connection, table: str, out_dir: Path) -> int:
+    """Write one table as redacted Parquet. Returns the rows published."""
+    frame = redact(db.read_table(conn, table))
+    frame.to_parquet(out_dir / f"{table}.parquet", index=False)
+    return len(frame)
 
 
 def dataset_bytes(out_dir: Path) -> int:
@@ -131,10 +128,7 @@ def build_manifest(
     trustworthiness (the quality metrics), and what was deliberately removed. A figure on
     the page can be traced back through this to the run that produced it.
     """
-    snapshot = conn.execute(
-        "SELECT snapshot_id, kind, observed_date, started_at FROM snapshots "
-        "ORDER BY snapshot_id DESC LIMIT 1"
-    ).fetchone()
+    snapshot = db.latest_snapshot(conn)
     observed_date = snapshot[2] if snapshot else None
     frame_size, with_attributes = 0, 0
     if observed_date:
@@ -173,12 +167,35 @@ def build_manifest(
     }
 
 
+def _record_series(conn: sqlite3.Connection, out_dir: Path, counts: dict[str, int]) -> int:
+    """Measure this run's per-dimension metrics from the dataset just written, and store them.
+
+    Two phases rather than one, because the measurement's own input is the published data:
+    the tables go out, the named queries run over them, the resulting points are written to
+    the system of record, and the series table alone is republished so the run appears in
+    the artifact it produced. Measuring against SQLite instead would avoid the second write
+    and cost a second definition of every metric — a trade this project has already refused.
+
+    Silently does nothing when no run has been recorded, which is the case in tests that
+    publish a bare database: a point with no snapshot has no date and no provenance.
+    """
+    snapshot = db.latest_snapshot(conn)
+    if snapshot is None:
+        return 0
+    snapshot_id, _, observed_date, _ = snapshot
+    rows = history.measure(counts["offers"], dataset_dir=out_dir)
+    db.write_dimension_metrics(conn, snapshot_id, observed_date, rows)
+    counts[SERIES_TABLE] = _write_table(conn, SERIES_TABLE, out_dir)
+    return len(rows)
+
+
 def publish(
     conn: sqlite3.Connection, out_dir: Path | None = None, git_sha: str | None = None
 ) -> dict:
     """Write the dataset and its manifest, refusing to publish an oversized artifact."""
     out_dir = Path(out_dir or config.DATASET_DIR)
     counts = write_dataset(conn, out_dir)
+    _record_series(conn, out_dir, counts)
     size_bytes = dataset_bytes(out_dir)
     if size_bytes > config.MAX_ARTIFACT_BYTES:
         raise ArtifactTooLarge(

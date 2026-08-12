@@ -26,7 +26,9 @@ from it_job_radar.site import charts
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 ASSET_DIR = Path(__file__).parent / "assets"
-JUNIOR = "junior"
+# The same level the dated series tracks, from one place: a page claiming one seniority
+# while the series recorded another would be two answers to one question.
+JUNIOR = config.HEADLINE_SENIORITY
 
 
 class IncompleteFigure(RuntimeError):
