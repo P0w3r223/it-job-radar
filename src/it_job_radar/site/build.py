@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -128,7 +127,11 @@ def gather(dataset_dir: Path | None = None) -> dict:
         work_modes = engine.run("work_mode_distribution", connection=connection)
         page = {
             "manifest": manifest,
-            "generated": datetime.now(),
+            # The dataset's own timestamp, never the wall clock. Two reasons: the reader
+            # cares when the data was exported, not when the HTML happened to be rendered;
+            # and a build that embeds `now()` can never be checked against the committed
+            # page, which is what the CI drift guard does.
+            "generated": manifest["generated_at"],
             "headline": _headline(junior_roles),
             "kpis": _kpis(manifest),
             "strata": strata,

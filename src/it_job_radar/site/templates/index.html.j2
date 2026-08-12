@@ -157,7 +157,7 @@
 
 <footer>
   <p>
-    Built {{ generated.strftime('%Y-%m-%d') }} from snapshot
+    Built {{ generated[:10] }} from snapshot
     <time datetime="{{ manifest.snapshot.observed_date }}">{{ manifest.snapshot.observed_date }}</time>,
     commit <code>{{ manifest.git_sha }}</code> ·
     <a href="data/{{ 'manifest.json' }}">manifest</a> ·
