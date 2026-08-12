@@ -85,12 +85,18 @@ def alias_coverage(raw_offers: list[dict], alias_index: dict[str, str]) -> Alias
 def stored_alias_coverage(
     conn: sqlite3.Connection, alias_index: dict[str, str]
 ) -> AliasCoverage:
-    """Alias coverage over every technology mention held, not just the last run's batch.
+    """Alias coverage over the technology rows held, not just the last run's batch.
 
     Reads the name each offer actually used, which the database keeps precisely so this
     question can be asked again after the dictionary changes. Measuring only the offers of
     the most recent fetch would report a number that moves with the batch rather than with
     the curation, and could never show an edit taking effect.
+
+    The unit is one row per resolved technology per offer per required flag — not every
+    mention the offer made. An offer writing both ``React.js`` and ``ReactJS`` contributes
+    one row, so the second spelling never reaches the miss report. Rows seeded by migration
+    v5 from an already-resolved name count as matched by construction; coverage is
+    optimistic by that much until they are re-collected.
     """
     names = [
         row[0]
@@ -106,8 +112,20 @@ def _scalar(conn: sqlite3.Connection, sql: str, params: tuple = ()) -> float:
     return float(row[0] or 0)
 
 
-def snapshot_metrics(conn: sqlite3.Connection, observed_date: str) -> dict[str, Metric]:
-    """Quality metrics derived from the stored data (not from a particular run)."""
+def snapshot_metrics(
+    conn: sqlite3.Connection, observed_date: str, alias_index: dict[str, str] | None = None
+) -> dict[str, Metric]:
+    """Quality metrics derived from the stored data (not from a particular run).
+
+    Alias coverage belongs here rather than beside a fetch: the repair that moves it runs on
+    every ``observe``, so measuring it only during ``collect`` would date each curation gain
+    to the next collection, or lose it entirely when collections are sparse. Being here also
+    carries it into the manifest, which is the only place its definition is recorded.
+
+    ``alias_index`` defaults to the dictionary on disk and is injectable so a test can
+    measure against a known vocabulary.
+    """
+    aliases = alias_index if alias_index is not None else normalize.load_tech_aliases()
     offers = _scalar(conn, "SELECT COUNT(*) FROM offers")
     salary_rows = _scalar(conn, "SELECT COUNT(*) FROM offer_salaries")
     with_salary = _scalar(
@@ -131,8 +149,17 @@ def snapshot_metrics(conn: sqlite3.Connection, observed_date: str) -> dict[str, 
     latest = conn.execute("SELECT MAX(collected_date) FROM offers").fetchone()[0]
     freshness = (date.fromisoformat(observed_date) - date.fromisoformat(latest)).days if latest else -1
 
+    coverage = stored_alias_coverage(conn, aliases)
+    unmatched = ", ".join(
+        f"{name}x{count}" for name, count in coverage.top_unmatched(config.UNMATCHED_IN_DETAIL)
+    )
+
     return {
         "salary_disclosure_rate": Metric(with_salary / offers if offers else 0.0),
+        # Deliberately not `alias_coverage_rate`: that name carries a series measured over
+        # one run's raw names, and continuing it under the same label would splice two
+        # different measurements into one line on a future chart.
+        "stored_alias_coverage_rate": Metric(coverage.rate, detail=unmatched or None),
         "salary_kind_unknown_share": Metric(unknown_kind / salary_rows if salary_rows else 0.0),
         "role_family_other_share": Metric(other_roles / offers if offers else 0.0),
         "role_family_unclassified": Metric(unclassified),

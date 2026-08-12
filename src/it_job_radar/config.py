@@ -88,6 +88,13 @@ ATTRIBUTION = (
 # Columns that never leave this machine: with them the artifact would be a copy of the
 # source's listings; without them it answers market questions and nothing else.
 REDACTED_COLUMNS = ("title", "company", "offer_url")
+# Kept out of the artifact for a different reason: not privacy but scope. `raw_name` is
+# bookkeeping for the alias repair loop, and ADR 0002 promises the published dataset holds
+# normalized attributes rather than free text from the source.
+INTERNAL_COLUMNS = ("raw_name",)
+# How many unresolved technology names the quality report names. Enough to act on, short
+# enough to paste into the dictionary in one sitting.
+UNMATCHED_IN_DETAIL = 20
 # Not a secret and not stored as one. It breaks casual joins back to the source while
 # keeping ids stable across snapshots so longitudinal analysis still works.
 EXPORT_ID_SALT = "it-job-radar"

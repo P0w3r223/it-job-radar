@@ -35,9 +35,11 @@ tables:
       technology:
         nullable: false
     rules:
-      # Without the raw name a dictionary fix can never reach data already stored, so the
-      # provenance is an invariant rather than a convenience.
-      - name: a stored technology keeps the name the offer used
+      # Without a raw name a dictionary fix can never reach data already stored, so having
+      # one is an invariant rather than a convenience. The rule checks presence, not
+      # provenance: rows seeded by migration v5 carry a reconstruction of the original name,
+      # and no rule here can tell the two apart.
+      - name: raw_name is always populated
         violating: raw_name IS NULL OR raw_name = ''
 
   offer_salaries:
