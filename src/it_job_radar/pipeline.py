@@ -314,6 +314,10 @@ def main(argv: list[str] | None = None) -> None:
     export_cmd.add_argument("--out", default=None, help=f"defaults to {config.DATASET_DIR}")
     site_cmd = sub.add_parser("site", help="render the published page from the dataset")
     site_cmd.add_argument("--out", default=None, help=f"defaults to {config.PUBLISH_DIR}")
+    verify_cmd = sub.add_parser(
+        "verify", help="check the published manifest against the data beside it"
+    )
+    verify_cmd.add_argument("--dataset", default=None, help=f"defaults to {config.DATASET_DIR}")
     args = parser.parse_args(argv)
 
     if args.command == "observe":
@@ -327,6 +331,13 @@ def main(argv: list[str] | None = None) -> None:
         export_dataset(args.out)
     elif args.command == "site":
         print(f"[site] wrote {site_build.build(args.out)}")
+    elif args.command == "verify":
+        problems = export.verify(args.dataset)
+        for problem in problems:
+            print(f"[verify] {problem}")
+        if problems:
+            sys.exit(1)
+        print("[verify] manifest agrees with the published data")
 
 
 if __name__ == "__main__":

@@ -23,3 +23,6 @@ LEFT JOIN offers o     ON o.offer_id = sal.offer_id
 WHERE sal.currency = $currency
   AND sal.kind = $kind
   AND sal.monthly_from IS NOT NULL
+-- The caller bootstraps these rows, and a resampler draws in the order it is given, so the
+-- published interval depends on this ordering. SQL promises none unless it is stated.
+ORDER BY seniority, offer_id, monthly_from, monthly_to

@@ -150,7 +150,26 @@ def test_rebuilding_the_same_dataset_gives_the_same_bytes(site, tmp_path):
     _, dataset = site
     first = build.build(tmp_path / "once", dataset_dir=dataset)
     second = build.build(tmp_path / "again", dataset_dir=dataset)
-    assert second.read_text(encoding="utf-8") == first.read_text(encoding="utf-8")
+    # bytes, not text: read_text hides the line-ending difference this also has to rule out
+    assert second.read_bytes() == first.read_bytes()
+    assert b"\r\n" not in first.read_bytes()  # CI rebuilds on Linux and diffs the result
+
+
+@pytest.mark.skipif(
+    not (config.DATASET_DIR / config.MANIFEST_NAME).is_file(),
+    reason="no published dataset in this checkout",
+)
+def test_committed_page_matches_the_committed_dataset(tmp_path):
+    """The same check CI runs, available before the push rather than after it.
+
+    Without it, drift is only ever discovered on the runner, where the developer cannot
+    see which of their local numbers moved.
+    """
+    rebuilt = build.build(tmp_path / "rebuilt", dataset_dir=config.DATASET_DIR)
+    published = config.PUBLISH_DIR / "index.html"
+    assert rebuilt.read_bytes() == published.read_bytes(), (
+        "docs/index.html is stale — run `python -m it_job_radar.pipeline site`"
+    )
 
 
 # --- Chart rendering ---------------------------------------------------------

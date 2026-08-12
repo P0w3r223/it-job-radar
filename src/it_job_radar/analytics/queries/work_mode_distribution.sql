@@ -8,4 +8,4 @@ SELECT
     COUNT(DISTINCT offer_id)  AS offers
 FROM offer_work_modes
 GROUP BY work_mode
-ORDER BY offers DESC
+ORDER BY offers DESC, work_mode

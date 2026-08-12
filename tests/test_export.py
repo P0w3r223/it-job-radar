@@ -76,6 +76,21 @@ def test_the_hash_is_stable_across_exports():
     assert len(export.hash_offer_id("a1")) == config.EXPORT_ID_LENGTH
 
 
+def test_verify_catches_a_manifest_that_no_longer_describes_its_data(dataset, tmp_path):
+    """A stale manifest is invisible to the drift guard, which rebuilds the page from it."""
+    conn, out = dataset
+    export.publish(conn, out, git_sha="abc1234")
+    assert export.verify(out) == []
+
+    manifest_path = out / config.MANIFEST_NAME
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rows"]["offers"] += 5
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    problems = export.verify(out)
+    assert any("offers" in problem for problem in problems)
+
+
 def test_internal_provenance_stays_out_of_the_artifact(dataset):
     """`raw_name` is bookkeeping for the repair loop, not part of the published dataset.
 

@@ -7,4 +7,6 @@ SELECT
     COUNT(DISTINCT s.offer_id) AS offers
 FROM offer_seniority s
 GROUP BY seniority
-ORDER BY offers DESC
+-- The tie-break is not cosmetic: this order reaches the page, and the guard in CI
+-- compares the page byte for byte.
+ORDER BY offers DESC, seniority

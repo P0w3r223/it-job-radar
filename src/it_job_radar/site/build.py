@@ -67,7 +67,7 @@ def _salary_ranges(connection, kind: str) -> list[charts.Range]:
     ]
 
 
-def _tech_bars(connection, strata: dict[str, int], **filters) -> list[charts.Bar]:
+def _tech_bars(connection, **filters) -> list[charts.Bar]:
     frame = engine.run("top_technologies", connection=connection, **filters)
     return [
         charts.Bar(label=row["technology"], value=int(row["offers"]))
@@ -144,7 +144,7 @@ def gather(dataset_dir: Path | None = None) -> dict:
             # template, where a `| safe` is easy to add to the wrong value later.
             "charts": {
                 "technologies": charts.bar_chart(
-                    _tech_bars(connection, strata, limit=12), "Most in-demand technologies"
+                    _tech_bars(connection, limit=12), "Most in-demand technologies"
                 ),
                 "junior_roles": charts.bar_chart(
                     _role_bars(junior_roles, int(junior_roles["offers"].sum())),
@@ -231,5 +231,8 @@ def build(out_dir: Path | None = None, dataset_dir: Path | None = None) -> Path:
     out_dir = Path(out_dir or config.PUBLISH_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / "index.html"
-    target.write_text(render(dataset_dir), encoding="utf-8")
+    # Explicit LF, not the platform's line ending: this file is committed and CI rebuilds it
+    # on another OS, so "the page is a function of the dataset" has to hold across both.
+    with open(target, "w", encoding="utf-8", newline="\n") as page:
+        page.write(render(dataset_dir))
     return target
