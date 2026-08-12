@@ -24,6 +24,7 @@ src/it_job_radar/
   analytics/queries/*.sql  # ONE definition per published metric — edit metrics here
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression, ordering
+  analytics/history.py     # dated per-dimension metrics (7.1) — same queries, stored per run
   site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
   pipeline.py              # CLI: observe | collect | quality | export | site | verify
 data/normalization/        # technology alias dictionary (YAML)
@@ -53,6 +54,10 @@ docs/research/             # data-source research + legal/ethics
   `fetch_*`, database access in `db.py`.
 - **Schema changes go through `migrations.py`.** `CREATE TABLE IF NOT EXISTS` cannot
   evolve a table that already exists.
+- **Dated metrics are measured from the published dataset, never recomputed.**
+  `analytics/history.py` runs the same named queries the page runs, which is why `export`
+  writes the series table twice — a run cannot appear in the dataset it is measured from
+  until it has been measured. Every point carries its `n`; the contract rejects one without.
 
 ## Conventions
 
