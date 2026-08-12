@@ -53,3 +53,95 @@ kafka: [apache kafka]
 terraform: []
 git: []
 linux: []
+
+# Added 2026-08-12 from the unmatched-name report (`pipeline quality`). These are the
+# names the dictionary was missing most often, not a guess at what a market "should" use.
+# Methodologies that appear alongside them (agile, scrum) are deliberately left out: they
+# are ways of working, and counting them as technologies would flatter the coverage metric
+# without making any chart truer.
+
+# Delivery / CI
+"ci/cd": ["ci / cd", cicd, "ci cd", "continuous integration", "continuous delivery"]
+jenkins: []
+gitlab: ["gitlab ci", "gitlab ci/cd"]
+"github actions": [github action]
+ansible: []
+vmware: [vsphere, "vmware vsphere"]
+
+# Collaboration / tracking
+jira: ["atlassian jira"]
+confluence: ["atlassian confluence"]
+servicenow: ["service now"]
+figma: []
+postman: []
+
+# Observability
+grafana: []
+prometheus: []
+zabbix: []
+
+# Interfaces / data formats
+rest: ["rest api", "rest apis", restful, "restful api"]
+soap: []
+xml: []
+graphql: []
+
+# Modelling / analysis notation
+uml: []
+bpmn: []
+
+# Databases / analytics platforms
+"sql server": ["microsoft sql server", "ms sql server", "ms sql", mssql]
+"t-sql": [tsql, "transact-sql"]
+oracle: ["oracle db", "oracle database"]
+databricks: []
+bigquery: ["google bigquery"]
+snowflake: []
+rabbitmq: []
+"power bi": ["microsoft power bi", "ms power bi", powerbi]
+excel: ["microsoft excel", "ms excel", vba]
+
+# Enterprise platforms
+sap: []
+abap: ["sap abap"]
+salesforce: []
+"microsoft dynamics": [dynamics 365, "ms dynamics"]
+"power platform": ["microsoft power platform", "power apps", powerapps, "power automate"]
+
+# Infrastructure / administration
+"windows server": []
+"active directory": ["azure active directory", "azure ad", "entra id"]
+powershell: []
+bash: ["shell scripting", "bash scripting"]
+cisco: []
+
+# ML / AI
+llm: [llms, "large language models", "large language model"]
+langchain: []
+pytorch: []
+tensorflow: []
+"scikit-learn": [sklearn, "scikit learn"]
+
+# Testing
+playwright: []
+selenium: []
+cypress: []
+
+# Second pass over the same report, after the first round shortened it.
+"azure devops": ["azure dev ops", vsts, tfs, "team foundation server"]
+bitbucket: []
+maven: []
+hibernate: []
+spark: ["apache spark", pyspark]
+pandas: []
+"azure data factory": []
+"sap hana": []
+"sap s/4hana": ["s/4hana", "sap s4hana", "s4hana"]
+"enterprise architect": ["sparx enterprise architect"]
+langgraph: []
+"generative ai": [genai, "gen ai"]
+mlops: []
+android: []
+ios: []
+dns: []
+kaggle: []
