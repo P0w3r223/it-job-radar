@@ -1,6 +1,6 @@
 """Tests for the aggregation queries (on a seeded temp database)."""
 
-from it_job_radar import analyze, db
+from it_job_radar import analyze, db, normalize
 
 
 def _offer(oid, tech, seniority, city=None, work_mode=None, mfrom=None, mto=None, kind="b2b"):
@@ -8,7 +8,7 @@ def _offer(oid, tech, seniority, city=None, work_mode=None, mfrom=None, mto=None
         "offer_id": oid, "title": "T", "company": "C", "offer_url": "u",
         "locations": [{"city": city, "region": None}] if city else [],
         "seniority": [seniority], "work_modes": [work_mode] if work_mode else [],
-        "technologies": {"expected": [tech], "optional": []},
+        "technologies": {"expected": normalize.normalize_technologies([tech], {}), "optional": []},
         "salaries": (
             [{"contract_type": "B2B", "kind": kind, "currency": "PLN",
               "salary_from": None, "salary_to": None, "time_unit": "miesięcznie",

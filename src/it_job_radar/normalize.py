@@ -26,6 +26,19 @@ class Normalization:
     tech_aliases: dict[str, str]
     role_rules: RoleRules
 
+
+@dataclass(frozen=True)
+class Technology:
+    """A technology as the offer wrote it (``raw``) and as we resolved it (``name``).
+
+    Both are kept because the alias dictionary is edited over time. Storing only the
+    resolved name would make every dictionary improvement apply to future offers alone,
+    and leave yesterday's ``ci / cd`` split from today's ``ci/cd`` for good.
+    """
+
+    raw: str
+    name: str
+
 _HOURS_PER_MONTH = 160  # ~20 working days x 8h, to convert hourly B2B to monthly
 _FUZZY_THRESHOLD = 88
 
@@ -92,6 +105,23 @@ def normalize_technology(name: str, alias_index: dict[str, str], threshold: int 
     if match and match[1] >= threshold:
         return alias_index[match[0]]
     return key  # unknown technology — keep it, lowercased
+
+
+def normalize_technologies(names, alias_index: dict[str, str]) -> list[Technology]:
+    """Resolve raw technology names, deduplicated by canonical form and ordered by it.
+
+    Deduplication is on the resolved name, so two spellings of one technology produce one
+    row for the offer — the first spelling seen is the one kept as provenance.
+    """
+    resolved: dict[str, Technology] = {}
+    for raw in names:
+        text = (raw or "").strip()
+        if not text:
+            continue
+        canonical = normalize_technology(text, alias_index)
+        if canonical and canonical not in resolved:
+            resolved[canonical] = Technology(raw=text, name=canonical)
+    return [resolved[name] for name in sorted(resolved)]
 
 
 def normalize_seniority(value: str | None) -> str | None:
@@ -171,8 +201,8 @@ def normalize_offer(offer: dict, normalization: Normalization) -> dict:
         "seniority": [s for s in (normalize_seniority(v) for v in offer.get("seniority", [])) if s],
         "work_modes": [m for m in (normalize_work_mode(v) for v in offer.get("work_modes", [])) if m],
         "technologies": {
-            "expected": sorted({t for t in (normalize_technology(x, alias_index) for x in offer.get("tech_expected", [])) if t}),
-            "optional": sorted({t for t in (normalize_technology(x, alias_index) for x in offer.get("tech_optional", [])) if t}),
+            "expected": normalize_technologies(offer.get("tech_expected", []), alias_index),
+            "optional": normalize_technologies(offer.get("tech_optional", []), alias_index),
         },
         "salaries": [normalize_salary(c) for c in offer.get("contracts", [])],
     }

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from it_job_radar import analyze, config, db, export
+from it_job_radar import analyze, config, db, export, normalize
 from it_job_radar.analytics import engine, stats
 
 
@@ -27,7 +27,10 @@ def _offer(offer_id, seniority, technologies, monthly=None, work_mode="remote", 
         "offer_url": f"https://x/{offer_id}", "role_family": family,
         "locations": [{"city": config.FOCUS_CITY, "region": "dolnośląskie"}],
         "seniority": [seniority], "work_modes": [work_mode],
-        "technologies": {"expected": technologies, "optional": ["git"]},
+        "technologies": {
+            "expected": normalize.normalize_technologies(technologies, {}),
+            "optional": normalize.normalize_technologies(["git"], {}),
+        },
         "salaries": salaries,
     }
 

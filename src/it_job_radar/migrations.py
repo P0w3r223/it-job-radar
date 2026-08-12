@@ -129,11 +129,29 @@ def _v4_role_family(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS ix_offers_role_family ON offers(role_family)")
 
 
+def _v5_technology_provenance(conn: sqlite3.Connection) -> None:
+    """Keep the technology name as the offer wrote it, so the dictionary can be re-applied.
+
+    Role families re-derive from the stored title on every run, so improving a rule repairs
+    offers classified before the fix. Technologies could not: only the normalized value was
+    stored and the raw name was discarded, which left the alias feedback loop unable to
+    close — a dictionary entry added today could never help an offer collected yesterday.
+
+    Existing rows are seeded from the normalized value. That is a faithful seed rather than
+    a guess: an unmatched name was stored as its own lowercased form, and a matched one was
+    stored as a canonical that the dictionary maps to itself, so re-normalizing either is a
+    no-op wherever the old answer was already right.
+    """
+    conn.execute("ALTER TABLE offer_technologies ADD COLUMN raw_name TEXT")
+    conn.execute("UPDATE offer_technologies SET raw_name = technology WHERE raw_name IS NULL")
+
+
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (1, "baseline schema", _v1_baseline),
     (2, "population frame", _v2_population_frame),
     (3, "snapshot identity", _v3_snapshot_identity),
     (4, "role family", _v4_role_family),
+    (5, "technology provenance", _v5_technology_provenance),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

@@ -61,6 +61,9 @@ def _sync_frame(
     reclassified = _classify_roles(conn, context)
     if reclassified:
         print(f"[frame] role family changed for {reclassified} offers")
+    reresolved = _renormalize_technologies(conn, context)
+    if reresolved:
+        print(f"[frame] alias dictionary re-resolved {reresolved} technology mentions")
     return delta
 
 
@@ -79,14 +82,29 @@ def _classify_roles(conn, context: normalize.Normalization) -> int:
     return db.set_role_families(conn, changed) if changed else 0
 
 
+def _renormalize_technologies(conn, context: normalize.Normalization) -> int:
+    """Re-resolve every stored technology against the current dictionary. Returns rows changed.
+
+    The counterpart of ``_classify_roles`` for the alias dictionary: adding an alias is what
+    fixes the data, not just what improves the next collection. Without this the quality
+    layer could report a coverage gap it had no way to close.
+    """
+    changed = [
+        (rowid, resolved)
+        for rowid, raw, current in db.technology_names(conn)
+        if (resolved := normalize.normalize_technology(raw, context.tech_aliases)) != current
+    ]
+    return db.set_technologies(conn, changed) if changed else 0
+
+
 def _record_quality_metrics(
-    conn, snapshot_id: int, today: str, raw_offers: list[dict], context: normalize.Normalization
+    conn, snapshot_id: int, today: str, context: normalize.Normalization
 ) -> None:
     """Write the instrument panel: how much we hold, how curated it is, how thin it gets."""
     for metric, measured in quality.snapshot_metrics(conn, today).items():
         db.write_snapshot_stat(conn, snapshot_id, today, metric, measured.value, measured.detail)
 
-    coverage = quality.alias_coverage(raw_offers, context.tech_aliases)
+    coverage = quality.stored_alias_coverage(conn, context.tech_aliases)
     detail = ", ".join(
         f"{name}x{count}" for name, count in coverage.top_unmatched(_UNMATCHED_IN_DETAIL)
     )
@@ -189,7 +207,7 @@ def collect_and_store(
         }
         for metric, value in run_metrics.items():
             db.write_snapshot_stat(conn, snapshot_id, today, metric, value)
-        _record_quality_metrics(conn, snapshot_id, today, raw, context)
+        _record_quality_metrics(conn, snapshot_id, today, context)
     finally:
         conn.close()
 
@@ -248,15 +266,19 @@ def quality_report(conn=None) -> list[quality.Violation]:
             suffix = f"  ({measured.detail})" if measured.detail else ""
             print(f"  {metric:<28} {measured.value:>8.3f}{suffix}")
 
-        recorded = db.latest_metric(conn, "alias_coverage_rate")
-        if recorded:
-            rate, detail = recorded
-            print(f"  {'alias_coverage_rate':<28} {rate:>8.3f}  (last collect)")
-            if detail:
-                print("\n[quality] technology names the dictionary missed, most costly first:")
-                for item in detail.split(", "):
-                    print(f"  {item}")
-                print("  -> add the real ones to data/normalization/tech_aliases.yaml")
+        # Measured live against the current dictionary rather than read back from the last
+        # collect, so an edit to the YAML shows up here immediately — which is the whole
+        # point of a feedback loop.
+        context = normalize.load_normalization()
+        coverage = quality.stored_alias_coverage(conn, context.tech_aliases)
+        print(f"  {'alias_coverage_rate':<28} {coverage.rate:>8.3f}")
+        unmatched = coverage.top_unmatched(_UNMATCHED_IN_DETAIL)
+        if unmatched:
+            print("\n[quality] technology names the dictionary missed, most costly first:")
+            for name, count in unmatched:
+                print(f"  {name}x{count}")
+            print("  -> add the real ones to data/normalization/tech_aliases.yaml,")
+            print("     then run `pipeline observe` to re-resolve what is already stored")
 
         violations = quality.validate_contract(conn)
         if violations:

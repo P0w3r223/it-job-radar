@@ -10,7 +10,7 @@ import json
 import pandas as pd
 import pytest
 
-from it_job_radar import config, db, export
+from it_job_radar import config, db, export, normalize
 
 
 def _offer(offer_id="a1"):
@@ -19,7 +19,10 @@ def _offer(offer_id="a1"):
         "offer_url": "https://theprotocol.it/szczegoly/praca/x,oferta,a1",
         "role_family": "backend", "locations": [{"city": "Wrocław", "region": "dolnośląskie"}],
         "seniority": ["senior"], "work_modes": ["remote"],
-        "technologies": {"expected": ["java"], "optional": ["docker"]},
+        "technologies": {
+            "expected": normalize.normalize_technologies(["java"], {}),
+            "optional": normalize.normalize_technologies(["docker"], {}),
+        },
         "salaries": [{
             "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 100,
             "salary_to": 150, "time_unit": "godzinowo", "monthly_from": 16000,

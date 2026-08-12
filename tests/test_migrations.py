@@ -32,6 +32,10 @@ def _legacy_database(path):
         "INSERT INTO offers (offer_id, title, collected_date) VALUES ('a1', 'Backend', '2026-07-17')"
     )
     conn.executemany(
+        "INSERT INTO offer_technologies (offer_id, technology, required) VALUES (?, ?, ?)",
+        [("a1", "ci / cd", 1), ("a1", "python", 1)],
+    )
+    conn.executemany(
         "INSERT INTO snapshot_stats (date, metric, value) VALUES (?, ?, ?)",
         [("2026-07-17", "offer_count", 250), ("2026-07-17", "offers_with_salary", 67)],
     )
@@ -84,4 +88,22 @@ def test_legacy_metrics_are_adopted_not_dropped(tmp_path):
     assert "migration" in snapshot[2]
     # offers survived untouched
     assert conn.execute("SELECT title FROM offers").fetchone()[0] == "Backend"
+    conn.close()
+
+
+def test_stored_technologies_gain_a_provenance_seed(tmp_path):
+    """Rows written before provenance existed must still be re-resolvable.
+
+    The seed is the stored normalized value: for an unmatched name that *is* the raw
+    string lowercased, so feeding it back through the dictionary is exactly the repair the
+    alias feedback loop promises.
+    """
+    path = tmp_path / "legacy.db"
+    _legacy_database(path).close()
+
+    conn = db.connect(path)
+    rows = conn.execute(
+        "SELECT technology, raw_name FROM offer_technologies ORDER BY technology"
+    ).fetchall()
+    assert rows == [("ci / cd", "ci / cd"), ("python", "python")]
     conn.close()
