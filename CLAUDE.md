@@ -25,7 +25,7 @@ src/it_job_radar/
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression, ordering
   site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
-  pipeline.py              # CLI: observe | collect | quality | export | site
+  pipeline.py              # CLI: observe | collect | quality | export | site | verify
 data/normalization/        # technology alias dictionary (YAML)
 notebooks/                 # analysis notebook
 tests/                     # pytest
@@ -77,6 +77,8 @@ pytest
 .venv/Scripts/python -m it_job_radar.pipeline export
 # render docs/index.html from that dataset — CI fails if the committed page differs
 .venv/Scripts/python -m it_job_radar.pipeline site
+# manifest vs the parquet beside it — the one drift the page diff cannot see
+.venv/Scripts/python -m it_job_radar.pipeline verify
 ```
 
 Editing `tech_aliases.yaml` or `role_families.yaml` repairs data already stored: both are

@@ -123,6 +123,8 @@ pytest
 .venv/Scripts/python -m it_job_radar.pipeline export
 # render docs/index.html from that dataset
 .venv/Scripts/python -m it_job_radar.pipeline site
+# check the published manifest still describes the data beside it (CI runs this too)
+.venv/Scripts/python -m it_job_radar.pipeline verify
 ```
 
 ## Limitations
