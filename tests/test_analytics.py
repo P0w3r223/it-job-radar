@@ -1,16 +1,16 @@
 """Tests for the analytical layer: named queries, parity with the old path, statistics.
 
-The parity tests are the load-bearing ones. While both paths exist, the DuckDB engine
-reading the exported Parquet must agree with `analyze.py` reading SQLite — that is what
-proves the export is faithful *and* that moving the analysis to the browser does not
-quietly change the numbers.
+Every published metric is defined once, as SQL, and executed here exactly as the site
+executes it. The parity tests that guarded the migration away from the old SQLite path are
+gone with that path; what remains is the check that each query still parses and answers,
+because a query that no longer runs is a broken published metric.
 """
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from it_job_radar import analyze, config, db, export, normalize
+from it_job_radar import config, db, export, normalize
 from it_job_radar.analytics import engine, stats
 
 
@@ -79,52 +79,6 @@ def test_query_text_is_verbatim_including_comments():
     sql = engine.query_text("top_technologies")
     assert sql.startswith("-- Most in-demand technologies.")
     assert "COUNT(DISTINCT t.offer_id)" in sql
-
-
-# --- Parity with the pre-existing SQLite path --------------------------------
-
-
-def test_top_technologies_matches_the_sqlite_path(dataset):
-    conn, connection = dataset
-    expected = analyze.top_technologies(conn, limit=10).sort_values("technology")
-    actual = engine.run("top_technologies", connection=connection, limit=10).sort_values("technology")
-
-    pd.testing.assert_frame_equal(
-        actual.reset_index(drop=True), expected.reset_index(drop=True), check_dtype=False
-    )
-
-
-def test_top_technologies_per_seniority_matches(dataset):
-    conn, connection = dataset
-    expected = analyze.top_technologies(conn, seniority="senior", limit=10).sort_values("technology")
-    actual = engine.run(
-        "top_technologies", connection=connection, seniority="senior", limit=10
-    ).sort_values("technology")
-
-    assert list(actual["technology"]) == list(expected["technology"])
-    assert list(actual["offers"]) == list(expected["offers"])
-
-
-def test_work_mode_distribution_matches(dataset):
-    conn, connection = dataset
-    expected = analyze.work_mode_distribution(conn).sort_values("work_mode")
-    actual = engine.run("work_mode_distribution", connection=connection).sort_values("work_mode")
-
-    pd.testing.assert_frame_equal(
-        actual.reset_index(drop=True), expected.reset_index(drop=True), check_dtype=False
-    )
-
-
-def test_salary_medians_match_the_sqlite_path(dataset):
-    conn, connection = dataset
-    expected = analyze.salary_by_seniority(conn).set_index("seniority")
-    rows = engine.run("salary_rows", connection=connection)
-    actual = stats.summarise_medians(rows, "seniority").set_index("seniority")
-
-    for level in expected.index:
-        assert actual.loc[level, "n"] == expected.loc[level, "offers"]
-        assert actual.loc[level, "median_monthly_from"] == expected.loc[level, "median_from"]
-        assert actual.loc[level, "median_monthly_to"] == expected.loc[level, "median_to"]
 
 
 # --- Role filtering ----------------------------------------------------------

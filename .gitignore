@@ -17,7 +17,6 @@ data/raw/*
 *.sqlite3
 
 # Generated Pages report
-reports/site/
 
 # IDE / editor
 .idea/

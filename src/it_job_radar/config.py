@@ -15,7 +15,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 DB_PATH = DATA_DIR / "job_offers.db"
-FIGURES_DIR = PROJECT_ROOT / "reports" / "figures"
 NORMALIZATION_DIR = DATA_DIR / "normalization"
 TECH_ALIASES_PATH = NORMALIZATION_DIR / "tech_aliases.yaml"
 ROLE_FAMILIES_PATH = NORMALIZATION_DIR / "role_families.yaml"

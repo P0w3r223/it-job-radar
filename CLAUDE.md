@@ -24,8 +24,8 @@ src/it_job_radar/
   analytics/queries/*.sql  # ONE definition per published metric — edit metrics here
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression, ordering
-  analyze.py               # DEPRECATED SQLite path, kept until phase 5 removes it
-  pipeline.py              # CLI: observe (frame only) | collect (frame + bounded fetch)
+  site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
+  pipeline.py              # CLI: observe | collect | quality | export | site
 data/normalization/        # technology alias dictionary (YAML)
 notebooks/                 # analysis notebook
 tests/                     # pytest
@@ -75,7 +75,13 @@ pytest
 .venv/Scripts/python -m it_job_radar.pipeline quality
 # redacted Parquet dataset the analytics layer and the site query
 .venv/Scripts/python -m it_job_radar.pipeline export
+# render docs/index.html from that dataset — CI fails if the committed page differs
+.venv/Scripts/python -m it_job_radar.pipeline site
 ```
+
+Editing `tech_aliases.yaml` or `role_families.yaml` repairs data already stored: both are
+re-derived on every `observe`, from the offer's title and from the technology name the
+offer used. Run `observe` after an edit rather than waiting for the next `collect`.
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
