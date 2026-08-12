@@ -28,7 +28,7 @@ in the concept catalogue feeds phases beyond that.
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
 | 5 — Site | 5.1, 5.2 and 5.5 **done** (server-rendered page, inline-SVG charts, honesty gate); 5.3, 5.4 (DuckDB-WASM layer) and 5.6 (retire `analyze.py`) remain |
-| 6 — Publication | not started (now also covers the repository landing page and the portfolio index) |
+| 6 — Publication | 6.4 **done** (README rebuilt finding-first, About metadata and topics updated, ADR pointers added to the research doc); 6.1-6.3 and 6.5 remain |
 | 7 — Trends and survival | blocked on repeated observations |
 
 Two deliberate deviations, recorded so they are not mistaken for oversights:
@@ -48,6 +48,17 @@ Two deliberate deviations, recorded so they are not mistaken for oversights:
   — it inherits the reader's colour scheme (so dark mode is not a second rendering), stays
   sharp at any size, and its labels are real text for screen readers. It also cut the page
   from 82 kB of base64 to 31 kB.
+- **Technology mentions keep their raw name (migration v5, added 2026-08-12).** Phase 2.3
+  promised that alias coverage would "rise measurably after the list is applied", and the
+  first real report showed it could not: only the normalized value was stored, so a
+  dictionary edit could improve future collections and nothing else. The schema now keeps
+  the name the offer used, and re-resolution runs on every observation exactly as role
+  classification does. Measured effect on the stored data: coverage 0.368 → 0.625, with
+  102 mentions re-resolved and 8 duplicate rows merged.
+- **Alias coverage is measured from the database, not from the last fetch.** It used to be
+  computed over the raw offers of one run, which made it a property of that batch and
+  impossible to recompute after a dictionary edit. It now reads the stored raw names, so
+  `pipeline quality` answers with the current dictionary.
 - **Parity is asserted against `analyze.py`, not between two dialects.** SQLite has no
   `MEDIAN`, so identical query text cannot run on both engines. The stronger check is the
   one in place: the exported Parquet must equal the redacted source table for table, and
@@ -442,10 +453,9 @@ State at the end of the 2026-08-11 session: phases 0-4 complete, phase 5 complet
 its interactive layer, 129 tests green, eleven commits on
 `feat/v2-browser-side-analytics` (branched from `main`, not merged).
 
-**1. Repository landing page (6.4).** First, because it is the first thing a senior reader
-sees and it currently describes a project that no longer exists — stride sampling, a
-`collect` flow that works differently, a site built from matplotlib PNGs. Includes the
-About description and topics, and the ADR pointers in `docs/research/data-sources.md`.
+**1. ~~Repository landing page (6.4).~~ Done 2026-08-12.** README rebuilt finding-first,
+About description and topics updated (`duckdb`, `parquet`, `duckdb-wasm`, `data-quality`),
+ADR pointers added to `docs/research/data-sources.md`.
 
 **2. Publication guards (6.2, 6.3).** CI runs only `pytest` today. Add the drift guard —
 rebuild `docs/` from the committed dataset, fail on any difference — and move the Pages
@@ -468,9 +478,9 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
 (regression controlling for seniority and city), and the dataset export that P4
 `pl-jobs-lora` consumes.
 
-**Not a task, but a decision.** Coverage is 1.4% (93 of 6466 listed offers). The page says
-so plainly, but a few more `collect` runs would turn the junior finding from a direction
-into a measurement — it currently rests on 19 offers.
+**Not a task, but a decision.** Coverage is 5.9% (387 of 6603 listed offers) after the
+2026-08-12 collect. The junior finding now rests on 47 offers rather than 19, which moved
+it from a direction to a measurement; further `collect` runs tighten it further.
 
 ## Open questions
 
@@ -478,12 +488,15 @@ into a measurement — it currently rests on 19 offers.
    every URL ends in `,oferta,<guid>` and the guid equals `offer.id` from `__NEXT_DATA__`
    (verified on three URLs spread across the sitemap). Coverage-aware sampling needs no
    extra requests. See ADR 0003.
-2. Fetch budget: the estimate of ~400 new offers/day comes from a constant-hazard fit to
-   a single 25-day survival observation (68 of 314 still live). Replace it with the exact
-   inflow measured by frame differencing after a week of `pipeline observe`, then set
-   `DEFAULT_SAMPLE_SIZE`.
+2. Fetch budget: the ~400 new offers/day estimate came from a constant-hazard fit to a
+   single 25-day survival observation. **First measurement, 2026-08-12:** frame
+   differencing gives 210 new and 73 gone against 6603 listed — a daily hazard near 1.1%,
+   well under what that fit implied, and an inflow the 300 budget covers in full
+   (`inflow_capture_rate = 1.0`). One interval is not a rate; confirm over ~5 days before
+   fixing `DEFAULT_FETCH_BUDGET`.
 3. Vendored WASM bundle size in practice — if it materially bloats the repository,
    reconsider a pinned CDN with the privacy trade-off documented.
-4. `MIN_STRATUM_N` value: 30 is the conventional default, but with junior at 19 today it
-   would suppress the segment entirely. Suppress honestly, or lower the threshold and
-   widen the interval? Decide with Phase 3.4 in hand.
+4. ~~`MIN_STRATUM_N` value~~ **Resolved 2026-08-12 by data, not by argument:** the
+   collect took junior from 19 to 47, above the conventional 30, so the threshold stays
+   where it is and the headline segment is no longer marked thin. Three levels remain
+   below it (`head` 4, `intern` 6, `lead` 18) and stay visible-but-marked.
