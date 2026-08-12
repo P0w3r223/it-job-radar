@@ -18,7 +18,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from it_job_radar import config, export
+from it_job_radar import config
 
 QUERY_DIR = Path(__file__).parent / "queries"
 _PARAM_RE = re.compile(r"\$([a-z_]+)")
@@ -72,7 +72,7 @@ def connect(dataset_dir: Path | None = None) -> duckdb.DuckDBPyConnection:
     """Open an in-memory DuckDB with the dataset's Parquet files registered as views."""
     dataset_dir = Path(dataset_dir or config.DATASET_DIR)
     connection = duckdb.connect()
-    for table in export.DATASET_TABLES:
+    for table in config.DATASET_TABLES:
         parquet = dataset_dir / f"{table}.parquet"
         if parquet.is_file():
             # DDL cannot take a prepared parameter, so the path is inlined. It comes from

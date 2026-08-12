@@ -152,6 +152,18 @@ def _v5_technology_provenance(conn: sqlite3.Connection) -> None:
     conn.execute("UPDATE offer_technologies SET raw_name = technology WHERE raw_name IS NULL")
 
 
+# --- v7: dated metrics that carry a dimension --------------------------------
+_DIMENSION_METRICS = """CREATE TABLE IF NOT EXISTS snapshot_dimension_metrics (
+    snapshot_id INTEGER NOT NULL REFERENCES snapshots(snapshot_id),
+    date TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    dimension TEXT NOT NULL,
+    value REAL,
+    n INTEGER NOT NULL,
+    PRIMARY KEY (snapshot_id, metric, dimension)
+)"""
+
+
 def _v6_one_row_per_technology(conn: sqlite3.Connection) -> None:
     """Move "an offer lists a technology once" from an assumption into the schema.
 
@@ -177,6 +189,23 @@ def _v6_one_row_per_technology(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v7_dimension_metrics(conn: sqlite3.Connection) -> None:
+    """Give a metric somewhere to put its dimension, so a trend is computable at all.
+
+    ``snapshot_stats`` holds one value per metric per run, which fits frame sizes and
+    quality rates and nothing else. "How did Python's share move" has no home there: the
+    dimension could only go into the metric name, turning every technology into its own
+    series label, and the sample size would have nowhere to go at all.
+
+    ``n`` is NOT NULL on purpose. It is the denominator that makes a count a share and the
+    sample size that makes a median readable, and both move from run to run — a point
+    plotted without it is a point nobody can weigh. The series starts at the first export
+    after this migration: earlier runs cannot be reconstructed, because the dataset records
+    the state of the market, not the state of every past observation of it.
+    """
+    conn.execute(_DIMENSION_METRICS)
+
+
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (1, "baseline schema", _v1_baseline),
     (2, "population frame", _v2_population_frame),
@@ -184,6 +213,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (4, "role family", _v4_role_family),
     (5, "technology provenance", _v5_technology_provenance),
     (6, "one row per technology", _v6_one_row_per_technology),
+    (7, "dated per-dimension metrics", _v7_dimension_metrics),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

@@ -61,6 +61,20 @@ tables:
       - name: a disclosed salary carries its currency and kind
         violating: monthly_from IS NOT NULL AND (currency IS NULL OR kind IS NULL)
 
+  snapshot_dimension_metrics:
+    columns:
+      metric:
+        nullable: false
+      dimension:
+        nullable: false
+    rules:
+      # A series point without its population cannot be read: the same count means one
+      # thing against 681 offers and another against 6603, and a median means nothing at
+      # all without knowing how many salaries it rests on. The column is NOT NULL in the
+      # schema; this rule catches the value that passes that check and still says nothing.
+      - name: a series point carries the population it rests on
+        violating: n IS NULL OR n <= 0
+
   sitemap_offers:
     columns:
       cohort:
