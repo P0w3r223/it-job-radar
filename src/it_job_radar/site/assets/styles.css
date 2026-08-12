@@ -128,6 +128,18 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .range-dot.high { fill: var(--accent); opacity: 0.55; }
 .chart .range.muted ~ .range-dot, .chart .range-dot.muted { fill: var(--accent-soft); }
 .chart .ci { stroke: var(--muted); stroke-width: 1.5; opacity: 0.75; }
+/* Accumulation: one series, so identity needs no colour — a filled marker is a run that
+   fetched pages, a hollow one a run that only observed the frame. */
+.chart .series {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart .series-dot { fill: var(--accent); }
+.chart .series-dot.observed { fill: var(--bg); stroke: var(--accent); stroke-width: 1.5; }
+.chart .axis-line { stroke: var(--border); stroke-width: 1; }
 
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
