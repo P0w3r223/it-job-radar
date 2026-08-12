@@ -43,7 +43,7 @@ def test_adding_an_alias_repairs_offers_collected_before_it(tmp_path):
 
     # the dictionary learns the technology, and the stored rows are re-resolved and merged
     after = _context(tmp_path, _ALIASES_AFTER)
-    assert pipeline._renormalize_technologies(conn, after) == 2
+    assert pipeline._renormalize_technologies(conn, after) == (2, 1)
 
     technologies = db.read_table(conn, "offer_technologies")
     assert list(technologies["technology"]) == ["ci/cd"]
@@ -57,6 +57,6 @@ def test_reresolving_without_a_dictionary_change_does_nothing(tmp_path):
     context = _context(tmp_path, _ALIASES_AFTER)
     db.write_offers(conn, [_offer([Technology(raw="CI / CD", name="ci/cd")])], "2026-08-12")
 
-    assert pipeline._renormalize_technologies(conn, context) == 0
+    assert pipeline._renormalize_technologies(conn, context) == (0, 0)
     assert list(db.read_table(conn, "offer_technologies")["technology"]) == ["ci/cd"]
     conn.close()

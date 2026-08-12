@@ -368,23 +368,29 @@ def technology_names(conn: sqlite3.Connection) -> list[tuple[int, str, str]]:
     ]
 
 
-def set_technologies(conn: sqlite3.Connection, rows: list[tuple[int, str]]) -> int:
-    """Apply ``(rowid, technology)`` re-resolutions. Returns the count updated.
+def set_technologies(conn: sqlite3.Connection, rows: list[tuple[int, str]]) -> tuple[int, int]:
+    """Apply ``(rowid, technology)`` re-resolutions. Returns ``(updated, merged)``.
 
     Merging two spellings into one canonical name can leave an offer holding the same
-    technology twice, so the collapsed duplicates are dropped in the same transaction —
-    otherwise the repair would trade a split row for a doubled one.
+    technology twice, which the unique index from migration v6 forbids. ``UPDATE OR
+    REPLACE`` resolves that by dropping the row the merge made redundant — the index scopes
+    the removal to the collision itself, so the repair cannot reach a row no dictionary edit
+    touched.
+
+    A merge is one-way: the losing spelling's provenance goes with its row, so the count is
+    returned rather than left silent.
     """
+    before = _technology_rows(conn)
     with conn:
         conn.executemany(
-            "UPDATE offer_technologies SET technology = ? WHERE rowid = ?",
+            "UPDATE OR REPLACE offer_technologies SET technology = ? WHERE rowid = ?",
             [(technology, rowid) for rowid, technology in rows],
         )
-        conn.execute(
-            "DELETE FROM offer_technologies WHERE rowid NOT IN ("
-            "  SELECT MIN(rowid) FROM offer_technologies GROUP BY offer_id, technology, required)"
-        )
-    return len(rows)
+    return len(rows), before - _technology_rows(conn)
+
+
+def _technology_rows(conn: sqlite3.Connection) -> int:
+    return int(conn.execute("SELECT COUNT(*) FROM offer_technologies").fetchone()[0])
 
 
 _READABLE_TABLES = frozenset({

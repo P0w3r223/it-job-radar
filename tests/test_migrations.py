@@ -6,6 +6,8 @@ must gain the new structure without losing the rows it already had.
 
 import sqlite3
 
+import pytest
+
 from it_job_radar import db, migrations
 
 # The schema exactly as it shipped before migrations were introduced.
@@ -88,6 +90,34 @@ def test_legacy_metrics_are_adopted_not_dropped(tmp_path):
     assert "migration" in snapshot[2]
     # offers survived untouched
     assert conn.execute("SELECT title FROM offers").fetchone()[0] == "Backend"
+    conn.close()
+
+
+def test_duplicate_technology_rows_are_collapsed_once_and_then_forbidden(tmp_path):
+    """The table-wide fix belongs here, where it runs once and is versioned.
+
+    It used to run after every repair, which let it reach offers no dictionary edit had
+    touched. The unique index makes the guarantee structural instead.
+    """
+    path = tmp_path / "legacy.db"
+    legacy = _legacy_database(path)
+    legacy.execute(
+        "INSERT INTO offer_technologies (offer_id, technology, required) VALUES ('a1', 'python', 1)"
+    )
+    legacy.commit()
+    legacy.close()
+
+    conn = db.connect(path)
+    rows = conn.execute(
+        "SELECT technology, COUNT(*) FROM offer_technologies GROUP BY technology ORDER BY technology"
+    ).fetchall()
+    assert rows == [("ci / cd", 1), ("python", 1)]
+
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO offer_technologies (offer_id, technology, required) "
+            "VALUES ('a1', 'python', 1)"
+        )
     conn.close()
 
 

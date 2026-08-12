@@ -66,10 +66,36 @@ def test_reresolving_technologies_merges_the_rows_it_collapses(tmp_path):
     assert {raw for _, raw, _ in rows} == {"ci / cd", "CI/CD"}
 
     # both spellings now resolve to one canonical name
-    db.set_technologies(conn, [(rowid, "ci/cd") for rowid, _, _ in rows])
+    assert db.set_technologies(conn, [(rowid, "ci/cd") for rowid, _, _ in rows]) == (2, 1)
 
     technologies = db.read_table(conn, "offer_technologies")
     assert list(technologies["technology"]) == ["ci/cd"]  # merged, not duplicated
+    conn.close()
+
+
+def test_reresolving_leaves_offers_the_change_did_not_touch_alone(tmp_path):
+    """The repair must reach the rows it repaired and no others.
+
+    An earlier version deduplicated the whole table after every merge, so an unrelated
+    offer could lose a row on a run that had nothing to do with it.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    affected = _offer("a1")
+    affected["technologies"] = {
+        "expected": [
+            Technology(raw="ci / cd", name="ci / cd"),
+            Technology(raw="CI/CD", name="ci/cd"),
+        ],
+        "optional": [],
+    }
+    bystander = _offer("a2")
+    db.write_offers(conn, [affected, bystander], "2026-07-17")
+
+    targets = [(rowid, "ci/cd") for rowid, raw, _ in db.technology_names(conn) if "ci" in raw.lower()]
+    db.set_technologies(conn, targets)
+
+    untouched = db.read_table(conn, "offer_technologies").query("offer_id == 'a2'")
+    assert set(untouched["technology"]) == {"python", "docker"}
     conn.close()
 
 
