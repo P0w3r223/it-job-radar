@@ -118,10 +118,23 @@
     <tr><th>Snapshot age</th><td class="num">{{ manifest.quality.freshness_days | int }} days</td></tr>
   </tbody>
 </table>
+<figure>
+  <div class="chart-wrap">{{ charts.coverage }}</div>
+  <figcaption>
+    One slot per recorded run, not per day — runs sit minutes or days apart, and spacing
+    them along a date axis would draw a rate nobody measured. A filled marker is a run that
+    spent its page budget; a hollow one only re-read the sitemap, which costs a handful of
+    requests and moves the frame rather than the coverage. The scale is the accumulation's
+    own, not the market's: against {{ manifest.coverage.offers_listed }} listed offers this
+    whole climb is a flat line, so the distance still to go is written on the chart rather
+    than drawn — the share on the final point is the honest reading of it.
+  </figcaption>
+</figure>
 <p class="note">
   Presence is complete — one sitemap request identifies every live offer — while
   attributes are fetched at most once per offer under a bounded daily budget. Coverage
-  therefore grows over time without ever increasing load on the source.
+  therefore grows over time without ever increasing load on the source. This is the
+  evidence for that claim rather than the claim itself: {{ runs_recorded }} runs so far.
 </p>
 
 <h2>Method, and what it cannot tell you</h2>

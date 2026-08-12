@@ -75,6 +75,10 @@ BOOTSTRAP_CONFIDENCE = 0.95
 HEADLINE_SENIORITY = "junior"
 
 # --- Dated series (phase 7.1) ------------------------------------------------
+# Points below this and the chart draws no connecting line. A line between two points is a
+# claim about what happened between them; with a series this short there is nothing to
+# interpolate, so the points are shown and the reader is told how many there are.
+MIN_SERIES_POINTS = 3
 # How many technologies each run records. Deliberately wider than any chart shows: a
 # technology that enters the top twelve next month needs its earlier values to draw a line
 # at all, and a run that has passed cannot be measured again.
