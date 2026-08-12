@@ -137,13 +137,44 @@ def _v5_technology_provenance(conn: sqlite3.Connection) -> None:
     stored and the raw name was discarded, which left the alias feedback loop unable to
     close — a dictionary entry added today could never help an offer collected yesterday.
 
-    Existing rows are seeded from the normalized value. That is a faithful seed rather than
-    a guess: an unmatched name was stored as its own lowercased form, and a matched one was
-    stored as a canonical that the dictionary maps to itself, so re-normalizing either is a
-    no-op wherever the old answer was already right.
+    Existing rows are seeded from the normalized value, which makes re-resolution a no-op
+    wherever the old answer was already right: an unmatched name was stored as its own
+    lowercased form, and a matched one as a canonical the dictionary maps to itself.
+
+    What the seed is *not* is a record of what the offer wrote. A name resolved by the fuzzy
+    matcher was stored as the canonical it hit, so for those rows the seed is the
+    dictionary's own output — they count as matched by construction and cannot be
+    re-litigated, because the string that would need a new alias is gone. Rows written after
+    this migration carry the real name; pre-migration rows carry the best reconstruction of
+    it, and coverage measured over them is optimistic by that much.
     """
     conn.execute("ALTER TABLE offer_technologies ADD COLUMN raw_name TEXT")
     conn.execute("UPDATE offer_technologies SET raw_name = technology WHERE raw_name IS NULL")
+
+
+def _v6_one_row_per_technology(conn: sqlite3.Connection) -> None:
+    """Move "an offer lists a technology once" from an assumption into the schema.
+
+    Re-resolution can map two spellings onto one canonical name, which would leave an offer
+    holding the same technology twice. That was first handled by deduplicating the whole
+    table after every repair — a statement with no relationship to the rows being repaired,
+    which reached duplicates in offers no dictionary edit had touched, and removed rows the
+    data contract exists to report. A table-wide fix belongs in a migration, where it runs
+    once and is versioned; a unique index then lets `UPDATE OR REPLACE` resolve exactly the
+    collision the merge caused, and nothing else.
+
+    `required` is part of the key on purpose: a technology can be listed as both a must-have
+    and a nice-to-have, and those are two different statements about the same offer.
+    """
+    conn.execute(
+        "DELETE FROM offer_technologies WHERE rowid NOT IN ("
+        "  SELECT MIN(rowid) FROM offer_technologies"
+        "  GROUP BY offer_id, technology, required)"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_offer_technology "
+        "ON offer_technologies(offer_id, technology, required)"
+    )
 
 
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
@@ -152,6 +183,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (3, "snapshot identity", _v3_snapshot_identity),
     (4, "role family", _v4_role_family),
     (5, "technology provenance", _v5_technology_provenance),
+    (6, "one row per technology", _v6_one_row_per_technology),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

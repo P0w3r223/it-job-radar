@@ -61,9 +61,12 @@ def _sync_frame(
     reclassified = _classify_roles(conn, context)
     if reclassified:
         print(f"[frame] role family changed for {reclassified} offers")
-    reresolved = _renormalize_technologies(conn, context)
+    reresolved, merged = _renormalize_technologies(conn, context)
     if reresolved:
-        print(f"[frame] alias dictionary re-resolved {reresolved} technology mentions")
+        print(
+            f"[frame] alias dictionary re-resolved {reresolved} technology mentions"
+            f" ({merged} rows merged into an existing one)"
+        )
     return delta
 
 
@@ -82,19 +85,23 @@ def _classify_roles(conn, context: normalize.Normalization) -> int:
     return db.set_role_families(conn, changed) if changed else 0
 
 
-def _renormalize_technologies(conn, context: normalize.Normalization) -> int:
-    """Re-resolve every stored technology against the current dictionary. Returns rows changed.
+def _renormalize_technologies(conn, context: normalize.Normalization) -> tuple[int, int]:
+    """Re-resolve stored technologies against the current dictionary. ``(changed, merged)``.
 
     The counterpart of ``_classify_roles`` for the alias dictionary: adding an alias is what
     fixes the data, not just what improves the next collection. Without this the quality
     layer could report a coverage gap it had no way to close.
+
+    An empty resolution is skipped rather than written: it would blank the technology and
+    trip the contract rule that requires the name to be present.
     """
     changed = [
         (rowid, resolved)
         for rowid, raw, current in db.technology_names(conn)
-        if (resolved := normalize.normalize_technology(raw, context.tech_aliases)) != current
+        if (resolved := normalize.normalize_technology(raw, context.tech_aliases))
+        and resolved != current
     ]
-    return db.set_technologies(conn, changed) if changed else 0
+    return db.set_technologies(conn, changed) if changed else (0, 0)
 
 
 def _record_quality_metrics(
