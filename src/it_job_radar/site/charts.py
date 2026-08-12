@@ -15,10 +15,19 @@ import math
 from dataclasses import dataclass
 from html import escape
 
+from it_job_radar import config
+
 _WIDTH = 720
 _ROW_HEIGHT = 26
 _LABEL_WIDTH = 150
 _PAD = 12
+
+# Geometry of the accumulation chart, which is plotted rather than laid out in rows.
+_SERIES_HEIGHT = 210
+_SERIES_LEFT = 58
+_SERIES_RIGHT = 96  # room for the label on the final point
+_SERIES_TOP = 30
+_SERIES_BASELINE = 168
 
 
 @dataclass(frozen=True)
@@ -40,6 +49,15 @@ class Range:
     ci_high: float
     n: int
     muted: bool = False
+
+
+@dataclass(frozen=True)
+class Point:
+    """One recorded run: what had accumulated by then, and whether that run added to it."""
+
+    label: str  # the date the run observed
+    value: float
+    fetched: bool = False  # a run that spent its page budget, rather than only observing
 
 
 def _text(value) -> str:
@@ -82,6 +100,95 @@ def bar_chart(bars: list[Bar], title: str, unit: str = "offers") -> str:
             f"{_thousands(bar.value)}{_text(note)}</text>"
         )
     return _svg(_WIDTH, height, f"{title} ({unit})", "".join(parts))
+
+
+def accumulation_chart(
+    points: list[Point],
+    title: str,
+    reference: float,
+    reference_label: str,
+    unit: str = "offers",
+    min_points: int = config.MIN_SERIES_POINTS,
+) -> str:
+    """One accumulating series, with the ceiling it is climbing towards stated in words.
+
+    Four decisions are deliberate.
+
+    The x axis is **ordinal** — one slot per recorded run, evenly spaced — because runs sit
+    minutes or days apart and a date axis would draw a rate nobody measured.
+
+    The y axis starts at zero and ends just above the largest value, **not** at the
+    population. Scaled to the population this figure is a flat line hugging the axis: at
+    10% coverage the whole accumulation is fourteen pixels, and the shape the chart exists
+    to show disappears. The distance to the ceiling is therefore carried by text — the
+    reference label and the share on the final point — where it can be read exactly instead
+    of estimated from a gap. A rising line with "10.3%" printed on its end cannot be
+    mistaken for a covered market; a flat line that shows nothing simply fails.
+
+    Below ``min_points`` no line is drawn: a segment between two points asserts something
+    about the interval between them, which a two-run series cannot support.
+
+    Only the final point is labelled. A number on every marker would be a table drawn as a
+    chart, and the table is already on the page.
+    """
+    if not points:
+        return '<p class="empty">No recorded runs yet.</p>'
+
+    largest = max(point.value for point in points)
+    ceiling = largest * 1.12 or 1  # headroom, so the last marker is not clipped by the frame
+    plot_width = _WIDTH - _SERIES_LEFT - _SERIES_RIGHT
+    step = plot_width / (len(points) - 1) if len(points) > 1 else 0.0
+
+    def x_of(index: int) -> float:
+        return _SERIES_LEFT + (index * step if len(points) > 1 else plot_width / 2)
+
+    def y_of(value: float) -> float:
+        span = _SERIES_BASELINE - _SERIES_TOP
+        return _SERIES_BASELINE - max(0.0, min(1.0, value / ceiling)) * span
+
+    parts = [
+        f'<line class="axis-line" x1="{_SERIES_LEFT}" x2="{_SERIES_LEFT + plot_width}" '
+        f'y1="{_SERIES_BASELINE}" y2="{_SERIES_BASELINE}"></line>',
+        f'<text class="axis" x="{_SERIES_LEFT + plot_width}" y="{_SERIES_TOP - 12}" '
+        f'text-anchor="end">of {_text(reference_label)}</text>',
+        # No tick for the top of the scale: it is the final point's own value, and the
+        # label on that point already states it — twice would be one number too many.
+        f'<text class="axis" x="{_SERIES_LEFT - 8}" y="{_SERIES_BASELINE + 4}" '
+        f'text-anchor="end">0</text>',
+    ]
+
+    if len(points) >= min_points:
+        path = " ".join(f"{x_of(i):.1f},{y_of(p.value):.1f}" for i, p in enumerate(points))
+        parts.append(f'<polyline class="series" points="{path}"></polyline>')
+
+    seen_labels: set[str] = set()
+    for index, point in enumerate(points):
+        x, y = x_of(index), y_of(point.value)
+        classes = "series-dot" if point.fetched else "series-dot observed"
+        parts.append(f'<circle class="{classes}" cx="{x:.1f}" cy="{y:.1f}" r="4"></circle>')
+        # One tick per date, not per run: several runs share a day, and repeating the date
+        # under each of them reads as several days.
+        if point.label not in seen_labels:
+            seen_labels.add(point.label)
+            parts.append(
+                f'<text class="axis" x="{x:.1f}" y="{_SERIES_BASELINE + 18}" '
+                f'text-anchor="middle">{_text(point.label)}</text>'
+            )
+
+    last = points[-1]
+    share = last.value / reference if reference else 0.0
+    parts.append(
+        f'<text class="bar-value" x="{x_of(len(points) - 1) + 10:.1f}" '
+        f'y="{y_of(last.value) + 4:.1f}">'
+        f"{_thousands(last.value)} ({share:.1%})</text>"
+    )
+    note = f"{len(points)} runs" if len(points) != 1 else "1 run"
+    drawn = "" if len(points) >= min_points else " — too short for a line, so the points stand alone"
+    parts.append(
+        f'<text class="axis" x="{_SERIES_LEFT}" y="{_SERIES_HEIGHT - 6}">'
+        f"{_text(note)}, {_text(unit)} with attributes collected{_text(drawn)}</text>"
+    )
+    return _svg(_WIDTH, _SERIES_HEIGHT, f"{title} ({unit})", "".join(parts))
 
 
 def range_chart(ranges: list[Range], title: str, unit: str = "PLN/month") -> str:
