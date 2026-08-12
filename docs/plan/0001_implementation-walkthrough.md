@@ -448,6 +448,14 @@ still require several collection runs across distinct days.
   headline segment, the salary rows behind a median. First run recorded 102 points.
 - **7.2** Coverage-over-time chart: unique offers ever seen vs. the current base size —
   the visible proof that bounded, polite sampling accumulates.
+  **Done 2026-08-12.** `coverage_over_time.sql` over the per-run metrics already recorded,
+  bound to the pipeline by a behavioural test rather than by matching metric names. Three
+  drawing decisions carry the honesty: an **ordinal** x axis (runs sit minutes or days
+  apart, so a date axis would draw an unmeasured rate), a y axis scaled to the accumulation
+  rather than to the market (at 10% coverage the climb is ~14px of flat line, so the
+  distance to the ceiling is stated in text where it reads exactly), and no connecting line
+  below `MIN_SERIES_POINTS`. Marker fill separates a run that fetched from one that only
+  observed — the flat steps are evidence too.
 - **7.3** Survival analysis on cohort B (Kaplan-Meier over `first_seen`/`last_seen`, with
   right censoring for offers still live): median days a posting stays open, by technology
   and seniority. Cohort A is excluded by construction (left truncation — see ADR 0003).
@@ -472,10 +480,11 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 ## Remaining work, in the order I would do it
 
-State after the second 2026-08-12 session: **v2 is merged to `main`** (PR #3, `test` and the
-drift guard green), phases 0-7.1 complete except 6.5, the interactive layer dropped on a
-measurement, 146 tests green. Coverage 10.3% (681 of 6603). The dated series exists but holds
-**one point per metric** — every trend below is waiting on days, not on code.
+State at the end of the second 2026-08-12 session: **v2 and 7.1 are merged to `main`**
+(PR #3, PR #4), Pages publishes from the workflow, 6.5 awaits a merge in the index repo, and
+7.2 is on `feat/coverage-over-time` (PR #5, CI green). 156 tests green; coverage 10.3%
+(681 of 6603). What remains is waiting on **days, not code**: the dated series holds one
+point per metric, and the flow cohort has recorded no exits at all.
 
 ### Next session, in order
 
@@ -486,36 +495,26 @@ after it is optional but cheap, and every run tightens the junior finding furthe
 7.1 landed, `export` after a run is no longer optional book-keeping — it is what records
 that day's point, and a day not exported is a hole in every series.
 
-**2. Switch GitHub Pages to the workflow source.** The repository is still on
-`build_type: legacy` (branch `main`, path `/docs`), while the `deploy` job now exists on
-`main` — which is the order that makes the switch safe:
+**2. ~~Switch GitHub Pages to the workflow source.~~ Done 2026-08-12.** The deploy on the
+merge of PR #3 failed because the repository was still on `build_type: legacy` — exactly the
+order this step warned about. After the switch, the next push deployed cleanly and the live
+page serves the dataset including the series table.
 
-```bash
-gh api -X PUT repos/P0w3r223/it-job-radar/pages -f build_type=workflow
-```
+**3. Portfolio index (6.5) — [PR #20](https://github.com/P0w3r223/current_projects/pull/20),
+awaiting merge.** Both acts done: the A2 row and the "Live now" entry rewritten around the
+presence/attributes split, the enforced contract and one verbatim SQL definition per metric
+(explicitly **not** browser-side analytics, which ADR 0001 rejects), and the submodule
+pointer bumped to the merged v2.
 
-Then push once and confirm the run appears in Actions and the live page still resolves.
-
-**3. Portfolio index (6.5).** Two acts, and the second is easy to forget: (a) rewrite the A2
-row and the "Live now" entry in `current_projects` — the distinguishing claims are now the
-presence/attributes sampling split, the measured quality layer with a contract, and one SQL
-definition per published metric shown verbatim; **do not** describe browser-side analytics,
-which ADR 0001 now rejects; (b) bump the `it-job-radar` submodule pointer to the merged
-commit, following the repository's existing `chore/bump-*` branch convention.
-
-**4. Phase 7.2 — coverage over time.** Unique offers ever seen against the current base
-size: the visible proof that bounded, polite sampling accumulates. The numbers are already
-dated in `snapshot_stats` (`coverage_fetched`, `coverage_share`, seven runs deep), so this
-is a chart and a query, not a data problem.
-
-**5. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
+**4. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
 with right censoring for offers still listed. Cohort A (`stock`) is excluded by construction
 — left truncation, see ADR 0003. Wants ~2 weeks of observations from 2026-08-12; the flow
 cohort currently holds 210 offers and **no exits at all**, so there is nothing yet to fit.
 
-**6. Phase 7.4 — technology movement between snapshots**, drawn from
-`snapshot_dimension_metrics`, with no trend line under a minimum series length — a rule that
-matters immediately, because the series is one point long.
+**5. Phase 7.4 — technology movement between snapshots**, drawn from
+`snapshot_dimension_metrics`, with no trend line under `MIN_SERIES_POINTS` — the rule 7.2
+already implements and this phase inherits. Needs at least three exported runs on distinct
+days before it can draw anything, so it is the last of the three to unblock.
 
 Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
 (regression controlling for seniority and city), and the dataset export that P4

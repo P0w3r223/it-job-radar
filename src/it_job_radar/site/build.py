@@ -77,6 +77,27 @@ def _tech_bars(connection, **filters) -> list[charts.Bar]:
     ]
 
 
+def _coverage_points(connection) -> tuple[list[charts.Point], float]:
+    """The accumulation and the population it is measured against.
+
+    The ceiling is the frame size of the *latest* run rather than the largest ever seen:
+    coverage is a share of the market as it stands today, and a base that only ever grew
+    would quietly flatter every earlier point.
+    """
+    frame = engine.run("coverage_over_time", connection=connection)
+    if frame.empty:
+        return [], 0.0
+    points = [
+        charts.Point(
+            label=row["observed_date"],
+            value=float(row["offers_analysed"]),
+            fetched=row["kind"] == config.SNAPSHOT_COLLECT,
+        )
+        for _, row in frame.iterrows()
+    ]
+    return points, float(frame["offers_listed"].iloc[-1])
+
+
 def _role_bars(frame: pd.DataFrame, total: int) -> list[charts.Bar]:
     return [
         charts.Bar(
@@ -127,6 +148,7 @@ def gather(dataset_dir: Path | None = None) -> dict:
         )
         all_roles = engine.run("role_family_distribution", connection=connection)
         work_modes = engine.run("work_mode_distribution", connection=connection)
+        coverage_points, coverage_ceiling = _coverage_points(connection)
         page = {
             "manifest": manifest,
             # The dataset's own timestamp, never the wall clock. Two reasons: the reader
@@ -171,7 +193,14 @@ def gather(dataset_dir: Path | None = None) -> dict:
                     ],
                     "Work modes",
                 ),
+                "coverage": charts.accumulation_chart(
+                    coverage_points,
+                    "Coverage accumulated run by run",
+                    reference=coverage_ceiling,
+                    reference_label=f"{coverage_ceiling:,.0f}".replace(",", " ") + " listed",
+                ),
             },
+            "runs_recorded": len(coverage_points),
             "junior_n": int(junior_roles["offers"].sum()),
             "queries": {name: engine.query_text(name) for name in engine.available()},
         }
