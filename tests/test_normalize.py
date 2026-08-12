@@ -26,6 +26,19 @@ def test_normalize_technology_unknown_kept(idx):
     assert normalize.normalize_technology("SomeNicheLangX", idx) == "somenichelangx"
 
 
+def test_normalize_technologies_keeps_the_raw_name(idx):
+    resolved = normalize.normalize_technologies(["ReactJS", "K8s"], idx)
+    # ordered by the resolved name, so the row order does not depend on how the offer listed them
+    assert [(t.raw, t.name) for t in resolved] == [("K8s", "kubernetes"), ("ReactJS", "react")]
+
+
+def test_normalize_technologies_dedupes_on_the_resolved_name(idx):
+    """Two spellings of one technology are one row for the offer, not two."""
+    resolved = normalize.normalize_technologies(["React.js", "ReactJS", "  ", None], idx)
+    assert [t.name for t in resolved] == ["react"]
+    assert resolved[0].raw == "React.js"  # the first spelling seen is the one recorded
+
+
 def test_normalize_seniority_polish_quirks():
     assert normalize.normalize_seniority("regular") == "mid"  # PL quirk
     assert normalize.normalize_seniority("młodszy") == "junior"

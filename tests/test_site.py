@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from it_job_radar import config, db, export
+from it_job_radar import config, db, export, normalize
 from it_job_radar.site import build, charts
 
 
@@ -26,7 +26,8 @@ def _offer(offer_id, seniority, monthly=None, family="backend", title="Java Engi
         "offer_url": f"https://theprotocol.it/x,oferta,{offer_id}", "role_family": family,
         "locations": [{"city": config.FOCUS_CITY, "region": "dolnośląskie"}],
         "seniority": [seniority], "work_modes": ["remote"],
-        "technologies": {"expected": ["python"], "optional": []}, "salaries": salaries,
+        "technologies": {"expected": normalize.normalize_technologies(["python"], {}), "optional": []},
+        "salaries": salaries,
     }
 
 

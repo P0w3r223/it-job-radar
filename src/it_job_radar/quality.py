@@ -82,6 +82,25 @@ def alias_coverage(raw_offers: list[dict], alias_index: dict[str, str]) -> Alias
     return AliasCoverage(total=total, matched=matched, unmatched=unmatched)
 
 
+def stored_alias_coverage(
+    conn: sqlite3.Connection, alias_index: dict[str, str]
+) -> AliasCoverage:
+    """Alias coverage over every technology mention held, not just the last run's batch.
+
+    Reads the name each offer actually used, which the database keeps precisely so this
+    question can be asked again after the dictionary changes. Measuring only the offers of
+    the most recent fetch would report a number that moves with the batch rather than with
+    the curation, and could never show an edit taking effect.
+    """
+    names = [
+        row[0]
+        for row in conn.execute(
+            "SELECT raw_name FROM offer_technologies WHERE raw_name IS NOT NULL"
+        )
+    ]
+    return alias_coverage([{"tech_expected": names}], alias_index)
+
+
 def _scalar(conn: sqlite3.Connection, sql: str, params: tuple = ()) -> float:
     row = conn.execute(sql, params).fetchone()
     return float(row[0] or 0)

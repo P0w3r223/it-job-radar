@@ -6,7 +6,7 @@ so each one is shown catching the thing it exists to catch.
 
 import pytest
 
-from it_job_radar import config, db, quality
+from it_job_radar import config, db, normalize, quality
 
 ALIASES = {"react": "React", "reactjs": "React", "python": "Python"}
 
@@ -15,7 +15,7 @@ def _offer(offer_id="a1", **overrides):
     offer = {
         "offer_id": offer_id, "title": "Backend", "company": "ACME", "offer_url": "u",
         "role_family": "backend", "locations": [], "seniority": ["mid"],
-        "work_modes": ["remote"], "technologies": {"expected": ["python"], "optional": []},
+        "work_modes": ["remote"], "technologies": {"expected": normalize.normalize_technologies(["python"], {}), "optional": []},
         "salaries": [{
             "contract_type": "B2B", "kind": "b2b", "currency": "PLN",
             "salary_from": 100, "salary_to": 150, "time_unit": "godzinowo",
@@ -52,6 +52,23 @@ def test_alias_coverage_names_what_the_dictionary_missed():
 
 def test_alias_coverage_of_nothing_is_not_a_failure():
     assert quality.alias_coverage([], ALIASES).rate == 1.0
+
+
+def test_stored_alias_coverage_is_measured_against_the_current_dictionary(tmp_path):
+    """The metric must move when the dictionary is edited, not only when a fetch happens."""
+    conn = db.connect(tmp_path / "t.db")
+    offer = _offer(technologies={
+        "expected": normalize.normalize_technologies(["ReactJS", "Comarch XL"], ALIASES),
+        "optional": [],
+    })
+    db.write_offers(conn, [offer], "2026-08-12")
+
+    assert quality.stored_alias_coverage(conn, ALIASES).rate == pytest.approx(1 / 2)
+    assert quality.stored_alias_coverage(conn, ALIASES).top_unmatched(1) == [("comarch xl", 1)]
+
+    taught = {**ALIASES, "comarch xl": "Comarch XL"}
+    assert quality.stored_alias_coverage(conn, taught).rate == 1.0
+    conn.close()
 
 
 # --- Snapshot metrics --------------------------------------------------------

@@ -30,6 +30,16 @@ tables:
         nullable: false
         allowed_from: WORK_MODE_VALUES
 
+  offer_technologies:
+    columns:
+      technology:
+        nullable: false
+    rules:
+      # Without the raw name a dictionary fix can never reach data already stored, so the
+      # provenance is an invariant rather than a convenience.
+      - name: a stored technology keeps the name the offer used
+        violating: raw_name IS NULL OR raw_name = ''
+
   offer_salaries:
     columns:
       kind:

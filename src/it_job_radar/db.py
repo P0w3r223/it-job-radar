@@ -289,10 +289,11 @@ def _replace_children(conn: sqlite3.Connection, offer: dict) -> None:
         [(oid, loc.get("city"), loc.get("region")) for loc in offer.get("locations", [])],
     )
     tech = offer.get("technologies", {})
-    tech_rows = [(oid, t, 1) for t in tech.get("expected", [])] + \
-                [(oid, t, 0) for t in tech.get("optional", [])]
+    tech_rows = [(oid, t.name, 1, t.raw) for t in tech.get("expected", [])] + \
+                [(oid, t.name, 0, t.raw) for t in tech.get("optional", [])]
     conn.executemany(
-        "INSERT INTO offer_technologies (offer_id, technology, required) VALUES (?, ?, ?)",
+        "INSERT INTO offer_technologies (offer_id, technology, required, raw_name) "
+        "VALUES (?, ?, ?, ?)",
         tech_rows,
     )
     conn.executemany(
@@ -350,6 +351,39 @@ def set_role_families(conn: sqlite3.Connection, rows: list[tuple[str, str]]) -> 
         [(family, offer_id) for offer_id, family in rows],
     )
     conn.commit()
+    return len(rows)
+
+
+def technology_names(conn: sqlite3.Connection) -> list[tuple[int, str, str]]:
+    """``(rowid, raw_name, current technology)`` for every stored technology row.
+
+    The raw name is what the offer wrote; re-resolving it through the current dictionary is
+    what lets an alias added today repair an offer collected months ago.
+    """
+    return [
+        (int(row[0]), row[1], row[2])
+        for row in conn.execute(
+            "SELECT rowid, raw_name, technology FROM offer_technologies WHERE raw_name IS NOT NULL"
+        )
+    ]
+
+
+def set_technologies(conn: sqlite3.Connection, rows: list[tuple[int, str]]) -> int:
+    """Apply ``(rowid, technology)`` re-resolutions. Returns the count updated.
+
+    Merging two spellings into one canonical name can leave an offer holding the same
+    technology twice, so the collapsed duplicates are dropped in the same transaction —
+    otherwise the repair would trade a split row for a doubled one.
+    """
+    with conn:
+        conn.executemany(
+            "UPDATE offer_technologies SET technology = ? WHERE rowid = ?",
+            [(technology, rowid) for rowid, technology in rows],
+        )
+        conn.execute(
+            "DELETE FROM offer_technologies WHERE rowid NOT IN ("
+            "  SELECT MIN(rowid) FROM offer_technologies GROUP BY offer_id, technology, required)"
+        )
     return len(rows)
 
 
