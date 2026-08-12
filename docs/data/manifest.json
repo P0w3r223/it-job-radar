@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-12T12:49:02",
-  "git_sha": "8cdc91c",
-  "schema_version": 6,
+  "generated_at": "2026-08-12T13:08:14",
+  "git_sha": "5badcb7",
+  "schema_version": 7,
   "snapshot": {
     "id": 8,
     "kind": "collect",
@@ -22,9 +22,10 @@
     "offer_salaries": 1252,
     "snapshots": 8,
     "snapshot_stats": 83,
+    "snapshot_dimension_metrics": 102,
     "sitemap_offers": 6676
   },
-  "bytes": 290001,
+  "bytes": 295140,
   "quality": {
     "salary_disclosure_rate": 0.274,
     "stored_alias_coverage_rate": 0.612,
