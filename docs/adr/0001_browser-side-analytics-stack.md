@@ -1,7 +1,9 @@
 # ADR 0001 — Browser-side analytics stack (DuckDB-WASM + Parquet)
 
 Date: 2026-08-11
-Status: accepted
+Status: **amended 2026-08-12** — the SQL-as-single-definition half is accepted and shipped;
+the DuckDB-WASM half is rejected on a measurement taken after this ADR was written
+(see *Amendment*).
 Author: P0w3r223 + Claude
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0002_published-artifact-policy.md`
 
@@ -91,3 +93,44 @@ rather than judgement.
 **Neutral.**
 - The published artifact becomes a first-class deliverable, which forces the question of
   *what* may be published — answered separately in ADR 0002.
+
+---
+
+## Amendment, 2026-08-12 — the WASM bundle was measured, and the premise did not survive
+
+This ADR twice states the bundle as **~3 MB**, and both the lazy-loading mitigation and the
+"accepted cost" rest on that figure. It was never measured. It is wrong by an order of
+magnitude:
+
+| Pin | `duckdb-mvp.wasm`, raw | Stored in git (≈ compressed) | Transferred to a reader |
+|---|---|---|---|
+| 1.28.0 (oldest still practical) | 21.1 MB | ~4.1 MB | ~4.2 MB |
+| 1.32.0 (current stable) | 37.5 MB | ~7.7 MB | ~7.9 MB |
+
+Plus the browser worker: 319 kB to 845 kB raw. No release since 1.24 is under 21 MB, so this
+is not a matter of choosing a leaner pin, and the `mvp`/`eh` split does not change the order
+of magnitude. The reader-side figure additionally assumes GitHub Pages compresses
+`application/wasm`, which is unverified; if it does not, the first filter click costs 21 MB.
+
+**The decision that follows.** The interactive layer is dropped. What ships is the half of
+this ADR that was never in doubt: one `.sql` file per published metric, executed by the
+Python analytics layer over the exported Parquet, and shown to the reader verbatim beside
+each figure. The dataset stays committed and downloadable, so a reader who wants to ask a
+different question can run those same queries against the same file — the capability moves
+from the page to the reader rather than disappearing.
+
+**Why not vendor it anyway.** The published dataset is 241 kB. Vendoring would put 4 MB of
+binary — which no test in this repository can audit, and which the drift guard cannot
+meaningfully check — beside data it outweighs sixteen to one, in a project whose whole claim
+is that every number has a visible source and an honest `n`.
+
+**Why not a pinned CDN.** It would keep the repository small at the cost of a third-party
+request from every reader. The same trade-off was already refused when the Google Fonts link
+was removed from this page; taking it now for a heavier dependency would be inconsistent.
+
+**What this costs.** The reader cannot filter in the page, and the cross-cutting questions
+named under *Alternatives considered* stay unanswered there. That argument was sound and is
+not withdrawn — it simply lost to a number that was not on the table when it was made. If
+the bundle materially shrinks, or if the interactive layer becomes the point rather than a
+demonstration, this decision is worth reopening; the query files it would need are already
+in place and unchanged.
