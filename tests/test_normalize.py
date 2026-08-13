@@ -172,9 +172,16 @@ def test_the_dictionary_refuses_to_put_one_technology_in_two_buckets(tmp_path):
     React.js failure the dictionary exists to prevent, committed by the dictionary.
     """
     path = tmp_path / "aliases.yaml"
-    path.write_text('"microsoft 365": [m365]\n"microsoft office": ["microsoft 365"]\n', encoding="utf-8")
-    with pytest.raises(normalize.AliasConflict):
-        normalize.load_tech_aliases(path)
+    # Both orders, because the two guards catch different ones: with the canonical listed
+    # first the "already claimed" check fires, with it listed second only the "an alias is
+    # also a canonical" check stands between the file and a silent resolution by line order.
+    for text in (
+        '"microsoft 365": [m365]\n"microsoft office": ["microsoft 365"]\n',
+        '"microsoft office": ["microsoft 365"]\n"microsoft 365": [m365]\n',
+    ):
+        path.write_text(text, encoding="utf-8")
+        with pytest.raises(normalize.AliasConflict):
+            normalize.load_tech_aliases(path)
 
     path.write_text('excel: [xls]\n"power bi": [xls]\n', encoding="utf-8")
     with pytest.raises(normalize.AliasConflict):
