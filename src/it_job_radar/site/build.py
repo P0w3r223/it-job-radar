@@ -248,6 +248,17 @@ def gather(dataset_dir: Path | None = None) -> dict:
     return page
 
 
+def _disclosure_note(withheld: int) -> str:
+    """"The rest publish nothing" stops being true the moment we withhold a figure.
+
+    A salary we refused to convert is not a salary nobody published, and the reader has no
+    way to tell the two apart from a percentage alone.
+    """
+    if not withheld:
+        return "the rest publish no figure at all"
+    return f"the rest none — and {withheld} we withheld as unit errors"
+
+
 def _kpis(manifest: dict) -> list[Kpi]:
     coverage = manifest["coverage"]
     quality = manifest["quality"]
@@ -257,7 +268,7 @@ def _kpis(manifest: dict) -> list[Kpi]:
         Kpi("Of the live market", f"{coverage['share']:.1%}",
             f"{coverage['attributes_known']} of {coverage['offers_listed']} listed today"),
         Kpi("Disclose a salary", f"{quality['salary_disclosure_rate']:.0%}",
-            "the rest publish no figure at all"),
+            _disclosure_note(int(quality.get("salary_monthly_withheld", 0)))),
         Kpi("Thin strata", f"{int(quality['strata_below_min_n'])}",
             f"seniority levels under n={config.MIN_STRATUM_N}, greyed below"),
     ]
