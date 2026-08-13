@@ -483,8 +483,8 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
 (PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
 repo. PR #7 is merged and the live page serves it. The second run of the day is on
-`chore/collect-2026-08-13-second` (PR #8). 175 tests green; coverage **32.9%**
-(2150 of 6530), four dated points per metric. What remains is still waiting on
+`chore/collect-2026-08-13-second` (PR #8). 175 tests green; coverage **47.9%**
+(3129 of 6530), six dated points per metric. What remains is still waiting on
 **days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
 
 ### Next session, in order
@@ -538,8 +538,8 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
 - **`.gitattributes` pins `docs/index.html` to LF.** Without it a Windows checkout converts
   the committed page to CRLF and every local rebuild reports a stale page — a failure with
   no commit behind it, which cost a debugging detour once already.
-- **Coverage is 32.9%** (2150 of 6530 listed offers). The junior finding rests on 162
-  offers, above `MIN_STRATUM_N`; more `collect` runs tighten it further.
+- **Coverage is 47.9%** (3129 of 6530 listed offers). The junior finding rests on 241
+  offers, and `head` (13) is the only stratum still below `MIN_STRATUM_N`.
 - **A derived number we know is false is never published.** `normalize_salary` withholds a
   monthly equivalent beyond `SALARY_SANITY_MAX` — one offer filed 14 500 PLN as an hourly
   rate — while the reported amount and unit stay as the source wrote them. Migration v8
