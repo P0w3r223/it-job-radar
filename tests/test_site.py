@@ -8,8 +8,10 @@ thin strata stay visible but marked, and that the redaction holds all the way to
 import re
 
 import pytest
+from markupsafe import escape
 
 from it_job_radar import config, db, export, normalize
+from it_job_radar.analytics import engine
 from it_job_radar.site import build, charts
 
 
@@ -199,7 +201,9 @@ def test_page_publishes_the_query_behind_every_metric(site):
     _, dataset = site
     html = build.render(dataset)
     assert "top_technologies.sql" in html
-    assert "COUNT(DISTINCT COALESCE(o.vacancy_id, t.offer_id))" in html  # the verbatim SQL, not a description
+    # Escaped, because the template escapes it: comparing against the file itself is the
+    # promise ("the page shows the query"), and the escaping is how it keeps it safely.
+    assert str(escape(engine.query_text("top_technologies"))) in html
 
 
 def test_page_carries_provenance_and_social_metadata(site):

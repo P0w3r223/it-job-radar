@@ -14,19 +14,27 @@ from it_job_radar import config, db, export, normalize
 
 
 def _offer(offer_id="a1"):
+    """Built the way the pipeline builds one, so every derived column is actually present.
+
+    A hand-written dict leaves `vacancy_key` unset, which made the redaction test pass over
+    a NULL column: publishing the key — "senior java engineer|acme sp. z o.o.", the two
+    fields ADR 0002 exists to withhold — would not have failed a single test.
+    """
+    return normalize.normalize_offer(_raw(offer_id), normalize.Normalization(
+        tech_aliases={}, role_rules=(("backend", ("java",)),)
+    ))
+
+
+def _raw(offer_id="a1"):
     return {
         "offer_id": offer_id, "title": "Senior Java Engineer", "company": "ACME Sp. z o.o.",
         "offer_url": "https://theprotocol.it/szczegoly/praca/x,oferta,a1",
-        "role_family": "backend", "locations": [{"city": "Wrocław", "region": "dolnośląskie"}],
+        "locations": [{"city": "Wrocław", "region": "dolnośląskie"}],
         "seniority": ["senior"], "work_modes": ["remote"],
-        "technologies": {
-            "expected": normalize.normalize_technologies(["java"], {}),
-            "optional": normalize.normalize_technologies(["docker"], {}),
-        },
-        "salaries": [{
-            "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 100,
-            "salary_to": 150, "time_unit": "godzinowo", "monthly_from": 16000,
-            "monthly_to": 24000,
+        "tech_expected": ["java"], "tech_optional": ["docker"],
+        "contracts": [{
+            "type": "B2B", "kind": "netto (+ VAT)", "currency": "zł",
+            "salary_from": 100, "salary_to": 150, "time_unit": "godzinowo",
         }],
     }
 
@@ -44,18 +52,37 @@ def dataset(tmp_path):
 
 def test_identifying_columns_never_reach_the_artifact(dataset):
     _, out = dataset
+    excluded = set(config.REDACTED_COLUMNS) | set(config.INTERNAL_COLUMNS)
     for table in config.DATASET_TABLES:
         columns = set(pd.read_parquet(out / f"{table}.parquet").columns)
-        leaked = columns & set(config.REDACTED_COLUMNS)
+        leaked = columns & excluded
         assert not leaked, f"{table} leaked {leaked}"
+
+
+def test_the_vacancy_key_is_published_only_as_a_hash(dataset):
+    """The grouping key is built from the title and the company, so it cannot ship as text.
+
+    `vacancy_id` must be there — every published count groups on it — and it must be the
+    salted digest of the key, not the key.
+    """
+    conn, out = dataset
+    offers = pd.read_parquet(out / "offers.parquet")
+    assert "vacancy_key" not in offers.columns
+    assert offers["vacancy_id"].notna().all()
+
+    stored = conn.execute("SELECT vacancy_key FROM offers LIMIT 1").fetchone()[0]
+    assert stored  # the fixture really does carry one, or this test proves nothing
+    assert set(offers["vacancy_id"]) == {export.hash_offer_id(stored)}
 
 
 def test_offer_titles_and_employers_are_absent_from_the_bytes(dataset):
     """A stricter check than column names: the strings must not be in the file at all."""
     _, out = dataset
-    blob = (out / "offers.parquet").read_bytes()
-    assert b"Senior Java Engineer" not in blob
-    assert b"ACME" not in blob
+    blob = (out / "offers.parquet").read_bytes().lower()
+    # Lowercased on both sides: the vacancy key normalises case, so a case-sensitive scan
+    # would have missed exactly the leak this file is here to prevent.
+    assert b"senior java engineer" not in blob
+    assert b"acme" not in blob
 
 
 def test_offer_ids_are_hashed_but_stay_joinable(dataset):

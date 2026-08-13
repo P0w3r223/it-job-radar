@@ -221,3 +221,72 @@ def test_allowed_values_come_from_config_not_a_copy():
     seniority = contract["tables"]["offer_seniority"]["columns"]["seniority"]
     assert seniority["allowed_from"] == "SENIORITY_ORDER"
     assert "head" in config.SENIORITY_ORDER  # added in phase 1.5, contract follows for free
+
+
+def test_contract_catches_a_salary_below_the_floor(tmp_path):
+    """The half of the guard that actually reached the published page.
+
+    Eleven rows sat at 14-180 PLN "miesięcznie" — hourly rates filed as monthly — dragging
+    five medians down. `normalize` and migration v9 both refuse them; until this test the
+    gate that stops publication did not.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    hourly_as_monthly = _offer(salaries=[{
+        "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 140,
+        "salary_to": 180, "time_unit": "miesięcznie",
+        "monthly_from": 140, "monthly_to": 180,
+    }])
+    db.write_offers(conn, [hourly_as_monthly], "2026-08-11")
+
+    rules = {v.rule for v in quality.validate_contract(conn)}
+    assert any("below the minimum" in rule for rule in rules)
+    conn.close()
+
+
+def test_contract_catches_a_unit_the_converter_cannot_read(tmp_path):
+    """An unseen unit is withheld silently and then described on the page as a unit error.
+
+    Those are different statements about the employer, so publication stops instead.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    daily = _offer(salaries=[{
+        "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 900,
+        "salary_to": 1200, "time_unit": "dziennie", "monthly_from": None, "monthly_to": None,
+    }])
+    db.write_offers(conn, [daily], "2026-08-11")
+
+    violations = quality.validate_contract(conn)
+    assert any(v.table == "offer_salaries" and "time_unit" in v.rule for v in violations)
+    conn.close()
+
+
+def test_the_convertible_units_are_the_ones_the_converter_knows(tmp_path):
+    """The contract reads config's tuple rather than repeating it.
+
+    It used to repeat the four strings inline, so adding a unit to `KNOWN_TIME_UNITS`
+    changed nothing and the docstring promising they stay in sync was describing a copy.
+    """
+    for unit in config.KNOWN_TIME_UNITS:
+        conn = db.connect(tmp_path / f"{unit}.db")
+        ok = _offer(salaries=[{
+            "contract_type": "B2B", "kind": "b2b", "currency": "PLN", "salary_from": 100,
+            "salary_to": 150, "time_unit": unit, "monthly_from": 16000, "monthly_to": 24000,
+        }])
+        db.write_offers(conn, [ok], "2026-08-11")
+        assert not [v for v in quality.validate_contract(conn) if "time_unit" in v.rule]
+        conn.close()
+
+
+def test_contract_catches_a_series_point_without_its_population(tmp_path):
+    """A count means one thing against 681 offers and another against 6603."""
+    conn = db.connect(tmp_path / "t.db")
+    snapshot = db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T10:00:00")
+    conn.execute(
+        "INSERT INTO snapshot_dimension_metrics (snapshot_id, date, metric, dimension, value, n) "
+        "VALUES (?, '2026-08-13', 'technology_vacancies', 'python', 12, 0)",
+        (snapshot,),
+    )
+    conn.commit()
+
+    assert any("population" in v.rule for v in quality.validate_contract(conn))
+    conn.close()
