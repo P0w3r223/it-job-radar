@@ -62,6 +62,9 @@ def _sync_frame(
     reclassified = _classify_roles(conn, context)
     if reclassified:
         print(f"[frame] role family changed for {reclassified} offers")
+    regrouped = _group_vacancies(conn)
+    if regrouped:
+        print(f"[frame] vacancy key set for {regrouped} offers")
     reresolved, merged = _renormalize_technologies(conn, context)
     if reresolved:
         print(
@@ -84,6 +87,20 @@ def _classify_roles(conn, context: normalize.Normalization) -> int:
         if (family := normalize.classify_role_family(title, context.role_rules)) != current
     ]
     return db.set_role_families(conn, changed) if changed else 0
+
+
+def _group_vacancies(conn) -> int:
+    """Re-derive which job each advert belongs to. Returns rows changed.
+
+    Same reason as ``_classify_roles``: the key is a rule, and a rule that ran once would
+    freeze its first version into data collected under it.
+    """
+    changed = [
+        (offer_id, key)
+        for offer_id, title, company, current in db.offer_identities(conn)
+        if (key := normalize.vacancy_key(title, company)) != current
+    ]
+    return db.set_vacancy_keys(conn, changed) if changed else 0
 
 
 def _renormalize_technologies(conn, context: normalize.Normalization) -> tuple[int, int]:

@@ -54,8 +54,14 @@ def redact(frame: pd.DataFrame) -> pd.DataFrame:
     published they would put un-normalized source text into a dataset that promises
     normalized attributes.
     """
+    out = frame
+    # The vacancy key is built from the title and the company, so publishing it would
+    # republish both. Hashed with the same salt as the offer id it stays a grouping key —
+    # which is all the analysis needs — without carrying the text it was built from.
+    if "vacancy_key" in out.columns:
+        out = out.assign(vacancy_id=out["vacancy_key"].map(hash_offer_id, na_action="ignore"))
     excluded = (*config.REDACTED_COLUMNS, *config.INTERNAL_COLUMNS)
-    out = frame.drop(columns=[c for c in excluded if c in frame.columns])
+    out = out.drop(columns=[c for c in excluded if c in out.columns])
     if "offer_id" in out.columns:
         out = out.assign(offer_id=out["offer_id"].map(hash_offer_id, na_action="ignore"))
     return out
@@ -183,7 +189,7 @@ def _record_series(conn: sqlite3.Connection, out_dir: Path, counts: dict[str, in
     if snapshot is None:
         return 0
     snapshot_id, _, observed_date, _ = snapshot
-    rows = history.measure(counts["offers"], dataset_dir=out_dir)
+    rows = history.measure(dataset_dir=out_dir)
     db.write_dimension_metrics(conn, snapshot_id, observed_date, rows)
     counts[SERIES_TABLE] = _write_table(conn, SERIES_TABLE, out_dir)
     return len(rows)

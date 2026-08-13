@@ -17,6 +17,12 @@ convention: for a count it is the population the count is a fraction of, for a m
 how many salaries stand behind it. Getting that wrong would publish a share against the
 wrong denominator, so each metric states which one it uses instead of leaving it implied.
 
+Metric names carry the population they were measured over, and change when it does. The
+`*_offers` series stopped on 2026-08-13 and `*_vacancies` began beside it: counting moved
+from adverts to jobs, and continuing one line through that change would splice two different
+measurements into a trend nobody measured. Same reason `alias_coverage_rate` became
+`stored_alias_coverage_rate`.
+
 The series begins at the first export that runs this code. Past runs cannot be backfilled:
 the dataset holds the current state of the market, not a record of every earlier view of
 it, so a point not measured on the day is a point lost.
@@ -56,20 +62,20 @@ COUNTS = (
     # one offer lists several, so that sum counts offers repeatedly and would make each
     # share smaller the wider the ranking gets.
     Count(
-        "technology_offers", "top_technologies", "technology", DATASET,
+        "technology_vacancies", "top_technologies", "technology", DATASET,
         {"limit": config.HISTORY_TECHNOLOGY_LIMIT},
     ),
-    Count("role_family_offers", "role_family_distribution", "role_family", DATASET),
+    Count("role_family_vacancies", "role_family_distribution", "role_family", DATASET),
     # The page's headline claim, tracked as a series so it can be watched changing rather
     # than only asserted about the current snapshot. Role families partition the offers
     # they describe, so here the query's own total is the right denominator.
     Count(
-        f"{config.HEADLINE_SENIORITY}_role_family_offers",
+        f"{config.HEADLINE_SENIORITY}_role_family_vacancies",
         "role_family_distribution", "role_family", GROUP,
         {"seniority": config.HEADLINE_SENIORITY},
     ),
-    Count("stratum_offers", "stratum_sizes", "seniority", DATASET),
-    Count("work_mode_offers", "work_mode_distribution", "work_mode", DATASET),
+    Count("stratum_vacancies", "stratum_sizes", "seniority", DATASET),
+    Count("work_mode_vacancies", "work_mode_distribution", "work_mode", DATASET),
 )
 
 
@@ -84,6 +90,14 @@ def _count_rows(spec: Count, connection, offer_count: int) -> list[tuple]:
         (spec.metric, str(row[spec.dimension]), float(row["offers"]), n)
         for _, row in frame.iterrows()
     ]
+
+
+def _vacancy_count(connection) -> int:
+    """Distinct jobs in the published dataset — the denominator every share is taken of."""
+    frame = connection.execute(
+        "SELECT COUNT(DISTINCT COALESCE(vacancy_id, offer_id)) FROM offers"
+    ).fetchdf()
+    return int(frame.iloc[0, 0])
 
 
 def _median_rows(connection) -> list[tuple]:
@@ -109,17 +123,18 @@ def _median_rows(connection) -> list[tuple]:
                 if pd.isna(value):
                     continue  # a stratum can disclose a floor and no ceiling
                 rows.append(
-                    (f"salary_median_{bound}_{kind}", str(row["seniority"]), float(value), n)
+                    (f"vacancy_salary_median_{bound}_{kind}", str(row["seniority"]), float(value), n)
                 )
     return rows
 
 
-def measure(offer_count: int, dataset_dir=None, connection=None) -> list[tuple]:
+def measure(dataset_dir=None, connection=None) -> list[tuple]:
     """Every dated metric for the published dataset, as ``(metric, dimension, value, n)``.
 
-    ``offer_count`` is the denominator for metrics measured against the whole dataset. It
-    is passed in rather than counted again here because the publisher already has it, and a
-    second count is a second chance to disagree.
+    The denominator for dataset-wide metrics is the number of *vacancies*, counted here
+    from the same dataset the numerators come from. It used to be the advert count handed
+    in by the publisher; once the numerators became vacancy counts, that would have divided
+    jobs by adverts and quietly shrunk every published share by a third.
 
     Pass ``connection`` to reuse an open dataset; otherwise one is opened and closed here.
     Rows come back ordered, so what reaches the database — and the Parquet beside it — does
@@ -128,7 +143,8 @@ def measure(offer_count: int, dataset_dir=None, connection=None) -> list[tuple]:
     own_connection = connection is None
     connection = connection or engine.connect(dataset_dir)
     try:
-        rows = [row for spec in COUNTS for row in _count_rows(spec, connection, offer_count)]
+        vacancy_count = _vacancy_count(connection)
+        rows = [row for spec in COUNTS for row in _count_rows(spec, connection, vacancy_count)]
         rows.extend(_median_rows(connection))
     finally:
         if own_connection:

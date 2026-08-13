@@ -67,6 +67,12 @@ SNAPSHOT_COLLECT = "collect"
 # --- Reporting thresholds ----------------------------------------------------
 # Strata smaller than this are labelled and greyed rather than plotted as if solid.
 MIN_STRATUM_N = 30
+# The second half of the same question. `MIN_STRATUM_N` asks whether a figure rests on
+# enough observations; this asks what the observations actually bought — the width of the
+# bootstrap interval as a share of the median it surrounds. Both are needed: counting alone
+# published a junior B2B median whose interval spanned 43% of itself, and width alone would
+# clear a two-row stratum whose interval is narrow only because two points cannot disagree.
+MAX_CI_WIDTH_SHARE = 0.25
 # Resamples behind every published median's confidence interval.
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_CONFIDENCE = 0.95
@@ -121,7 +127,7 @@ REDACTED_COLUMNS = ("title", "company", "offer_url")
 # Kept out of the artifact for a different reason: not privacy but scope. `raw_name` is
 # bookkeeping for the alias repair loop, and ADR 0002 promises the published dataset holds
 # normalized attributes rather than free text from the source.
-INTERNAL_COLUMNS = ("raw_name",)
+INTERNAL_COLUMNS = ("raw_name", "vacancy_key")
 # How many unresolved technology names the quality report names. Enough to act on, short
 # enough to paste into the dictionary in one sitting.
 UNMATCHED_IN_DETAIL = 20
@@ -187,6 +193,12 @@ CONTRACT_KINDS = (CONTRACT_B2B, CONTRACT_EMPLOYMENT)
 # error it is aimed at.
 SALARY_SANITY_MAX = 200_000
 SALARY_SANITY_MIN = 1_000
+# The time units `normalize_salary` knows how to turn into a monthly figure. The source
+# writes this field as free text, so an unseen one ("dziennie", "rocznie") would leave the
+# amount unconverted and land it in the withheld count, where the page names it a unit
+# error. The contract references this tuple: a new unit stops publication loudly instead of
+# quietly making a published sentence false.
+KNOWN_TIME_UNITS = ("miesięcznie", "monthly", "godzinowo", "hourly")
 
 # --- Value domains, referenced by data/contract.yaml via `allowed_from` ------
 # Kept here so the contract and the code cannot disagree about what is valid.

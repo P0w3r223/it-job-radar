@@ -51,11 +51,18 @@ def summarise_medians(
     value_columns: tuple[str, ...] = ("monthly_from", "monthly_to"),
     min_n: int = config.MIN_STRATUM_N,
     seed: int | None = 0,
+    max_ci_width: float = config.MAX_CI_WIDTH_SHARE,
 ) -> pd.DataFrame:
     """Median per group with ``n``, a bootstrap interval, and a suppression flag.
 
     Returns one row per group with ``median_<col>``, ``ci_low_<col>``, ``ci_high_<col>``
     for each value column, plus ``n`` and ``suppressed``.
+
+    A figure is marked when *either* test fails, because each catches what the other
+    misses. Counting alone marked the wrong strata: junior B2B passed `min_n` with 33 rows
+    and an interval 43% as wide as its own median, while `head` was marked at n=2 despite an
+    interval 7% wide — narrow because two points cannot disagree, which is degeneracy rather
+    than precision. So the width test cannot replace the count either, and both stay.
     """
     if rows.empty:
         columns = [group, "n", "suppressed"] + [
@@ -74,9 +81,30 @@ def summarise_medians(
             summary[f"median_{column}"] = float(values.median()) if len(values) else float("nan")
             summary[f"ci_low_{column}"] = low
             summary[f"ci_high_{column}"] = high
-        summary["suppressed"] = len(chunk) < min_n
+        summary["suppressed"] = len(chunk) < min_n or _too_wide(
+            summary, value_columns, max_ci_width
+        )
         summaries.append(summary)
     return pd.DataFrame(summaries)
+
+
+def _too_wide(summary: dict, value_columns: tuple[str, ...], limit: float) -> bool:
+    """Whether any published bound rests on an interval too wide to read as a figure.
+
+    Relative to the median, so the test means the same thing at every salary level: a
+    2000 PLN spread is precision at 20 000 and noise at 6000. A median of zero or NaN
+    cannot be judged this way and is left to the count test.
+    """
+    for column in value_columns:
+        median = summary.get(f"median_{column}")
+        low, high = summary.get(f"ci_low_{column}"), summary.get(f"ci_high_{column}")
+        if median is None or low is None or high is None:
+            continue
+        if not median or median != median:  # zero, or NaN (which compares unequal to itself)
+            continue
+        if (high - low) / median > limit:
+            return True
+    return False
 
 
 def order_by_seniority(frame: pd.DataFrame, column: str = "seniority") -> pd.DataFrame:

@@ -199,7 +199,6 @@ microservices: [microservice, "micro services"]
 rag: ["retrieval augmented generation", "retrieval-augmented generation"]
 
 # Microsoft estate
-"microsoft 365": ["office 365", m365, o365]
 sharepoint: ["microsoft sharepoint"]
 intune: ["microsoft intune"]
 "microsoft copilot studio": ["copilot studio"]
@@ -276,7 +275,7 @@ xgboost: []
 "vertex ai": [vertex, "google vertex ai"]
 openai: []
 claude: ["claude code"]
-"github copilot": [copilot]
+"github copilot": []
 
 # Observability
 opentelemetry: [otel, "open telemetry"]
@@ -288,4 +287,4 @@ opentelemetry: [otel, "open telemetry"]
 argocd: ["argo cd"]
 jpa: []
 redux: []
-"microsoft office": ["ms office", "office 365", "microsoft 365"]
+"microsoft office": ["ms office", "office 365", "microsoft 365", m365, o365]

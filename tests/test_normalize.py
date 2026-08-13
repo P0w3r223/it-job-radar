@@ -144,3 +144,42 @@ def test_normalize_offer_keeps_the_url(idx):
     normalized = normalize.normalize_offer(raw, context)
     assert normalized["offer_url"] == raw["offer_url"]
     assert normalized["seniority"] == ["mid"]  # the Polish quirk still applies
+
+
+def test_one_role_advertised_per_city_is_one_vacancy():
+    """The bias this key exists to remove: 44% of the sample sat in such groups."""
+    a = normalize.vacancy_key("Cloud Data Engineer (f/m/x)", "Sii Sp. z o.o.")
+    b = normalize.vacancy_key("cloud data engineer (f/m/x)", "SII  SP. Z O.O.")
+    assert a == b
+
+
+def test_a_different_role_at_the_same_employer_stays_its_own_vacancy():
+    assert normalize.vacancy_key("Kotlin Developer", "Sii") != normalize.vacancy_key(
+        "Cloud Data Engineer", "Sii"
+    )
+
+
+def test_an_advert_missing_either_half_stands_alone():
+    """No key means no grouping, which is the safe direction: it can only under-merge."""
+    assert normalize.vacancy_key("Backend Engineer", None) is None
+    assert normalize.vacancy_key(None, "ACME") is None
+
+
+def test_the_dictionary_refuses_to_put_one_technology_in_two_buckets(tmp_path):
+    """`microsoft 365` was a canonical and an alias of `microsoft office` at the same time.
+
+    Which bucket an advert landed in depended on the spelling it used — the ReactJS /
+    React.js failure the dictionary exists to prevent, committed by the dictionary.
+    """
+    path = tmp_path / "aliases.yaml"
+    path.write_text('"microsoft 365": [m365]\n"microsoft office": ["microsoft 365"]\n', encoding="utf-8")
+    with pytest.raises(normalize.AliasConflict):
+        normalize.load_tech_aliases(path)
+
+    path.write_text('excel: [xls]\n"power bi": [xls]\n', encoding="utf-8")
+    with pytest.raises(normalize.AliasConflict):
+        normalize.load_tech_aliases(path)
+
+
+def test_the_shipped_dictionary_is_free_of_those_conflicts():
+    normalize.load_tech_aliases()  # raises AliasConflict if it is not

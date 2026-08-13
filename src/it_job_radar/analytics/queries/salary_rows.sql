@@ -11,8 +11,13 @@
 --
 -- An offer listing several seniority levels contributes to each of them — an accepted
 -- modelling choice for a market overview, not an oversight.
-SELECT
-    sal.offer_id      AS offer_id,
+--
+-- One row per VACANCY, not per advert. The same role published once per city repeats its
+-- salary in every copy, so counting adverts would weight a median by how widely an employer
+-- advertises rather than by what the market pays. DISTINCT over the vacancy and the figures
+-- keeps a vacancy that genuinely states two different ranges as two rows.
+SELECT DISTINCT
+    COALESCE(o.vacancy_id, sal.offer_id) AS offer_id,
     s.seniority       AS seniority,
     o.role_family     AS role_family,
     sal.monthly_from  AS monthly_from,
