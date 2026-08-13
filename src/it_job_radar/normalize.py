@@ -157,9 +157,16 @@ def _classify_kind(kind_code: str | None) -> str | None:
     return None
 
 
-def _beyond_sanity(monthly: float | None) -> bool:
-    """Whether a monthly equivalent is outside anything a job advert can plausibly mean."""
-    return monthly is not None and monthly > config.SALARY_SANITY_MAX
+def _outside_sanity(monthly: float | None) -> bool:
+    """Whether a monthly equivalent is outside anything a job advert can plausibly mean.
+
+    Both bounds catch one mistake from its two sides: the source takes the amount and the
+    unit as separate fields, so a monthly figure filed as hourly overshoots the ceiling and
+    an hourly rate filed as monthly falls under the floor.
+    """
+    if monthly is None:
+        return False
+    return monthly > config.SALARY_SANITY_MAX or monthly < config.SALARY_SANITY_MIN
 
 
 def normalize_salary(contract: dict) -> dict:
@@ -181,13 +188,14 @@ def normalize_salary(contract: dict) -> dict:
     monthly_from = salary_from * multiplier if (salary_from and multiplier) else None
     monthly_to = salary_to * multiplier if (salary_to and multiplier) else None
     # A unit the employer cannot have meant. theprotocol's form takes the amount and the
-    # unit as separate fields, so nothing stops a monthly figure being filed as hourly:
-    # one offer in the 2026-08-13 sample published 14 500 PLN "godzinowo", which converts
-    # to 2.3 M a month and would move a bootstrap interval on its own. We do not guess what
-    # was meant — the amount and the unit stay exactly as published, and only the figure we
-    # derived is withheld, because it is ours and we know it is false.
+    # unit as separate fields, so nothing stops one being filed under the other: the
+    # 2026-08-13 sample held 14 500 PLN "godzinowo" (2.3 M a month once converted) and, in
+    # the other direction, eleven rows at 14-180 PLN "miesięcznie" — hourly rates that were
+    # dragging five published medians down. We do not guess what was meant — the amount and
+    # the unit stay exactly as published, and only the figure we derived is withheld,
+    # because it is ours and we know it is false.
     # `quality.salary_monthly_withheld` counts these, so the refusal is visible.
-    if _beyond_sanity(monthly_from) or _beyond_sanity(monthly_to):
+    if _outside_sanity(monthly_from) or _outside_sanity(monthly_to):
         monthly_from = monthly_to = None
     return {
         "contract_type": contract.get("type"),

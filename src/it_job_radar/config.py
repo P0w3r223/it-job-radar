@@ -156,6 +156,13 @@ ROLE_FAMILY_OTHER = "other"
 # so neither can carry a claim about the market; both stay in every published count.
 ROLE_FAMILY_UNCLASSIFIED = "unclassified"
 ROLE_FAMILY_RESIDUE = (ROLE_FAMILY_OTHER, ROLE_FAMILY_UNCLASSIFIED)
+# The families the page's "not development jobs" claim is measured against. Families are
+# fine-grained enough that development could pass half the market while each single one
+# stays under the largest non-development family, so the claim is checked against their
+# sum rather than inferred from the ranking. Deliberately generous about what counts as
+# development — every family here builds software — because a wide reading is the one that
+# can falsify the claim, and a claim that cannot be falsified is not a finding.
+DEVELOPMENT_FAMILIES = ("software", "backend", "frontend", "fullstack", "mobile", "ml")
 
 # Work mode normalization (theprotocol detailedWorkModes codes).
 WORK_MODE_MAP = {
@@ -171,9 +178,15 @@ KNOWN_CURRENCIES = ("PLN", "EUR", "USD", "GBP")
 CONTRACT_B2B = "b2b"
 CONTRACT_EMPLOYMENT = "employment"
 CONTRACT_KINDS = (CONTRACT_B2B, CONTRACT_EMPLOYMENT)
-# A monthly figure above this is a parsing failure, not a salary — the contract rejects it
-# rather than letting one bad row drag a median.
+# A monthly figure outside this band is a unit error, not a salary — the contract rejects it
+# rather than letting one bad row drag a median. Both bounds are the same mistake seen from
+# its two sides: a monthly amount filed as hourly lands above the ceiling, an hourly rate
+# filed as monthly lands under the floor. Observed under the floor: 31.40 PLN "miesięcznie",
+# which is to the grosz the statutory *hourly* minimum, and B2B architects at 140 PLN.
+# The floor sits far below any lawful full-time monthly wage, so it can only catch the
+# error it is aimed at.
 SALARY_SANITY_MAX = 200_000
+SALARY_SANITY_MIN = 1_000
 
 # --- Value domains, referenced by data/contract.yaml via `allowed_from` ------
 # Kept here so the contract and the code cannot disagree about what is valid.

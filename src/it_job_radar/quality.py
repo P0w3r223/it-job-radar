@@ -229,11 +229,12 @@ def _column_checks(column: str, spec: dict) -> list[tuple[str, str, tuple]]:
             f"{guard}{column} NOT IN ({placeholders})",
             allowed,
         ))
-    if "min" in spec:
+    if "min" in spec or "min_from" in spec:
+        minimum = spec["min"] if "min" in spec else _domain(spec["min_from"])
         checks.append((
             f"{column} below the minimum",
             f"{column} IS NOT NULL AND {column} < ?",
-            (spec["min"],),
+            (minimum,),
         ))
     if "max" in spec or "max_from" in spec:
         maximum = spec["max"] if "max" in spec else _domain(spec["max_from"])
