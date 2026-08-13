@@ -114,22 +114,45 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
 
     If the data stops supporting it — if development overtakes support among juniors —
     the headline changes with it instead of quietly becoming false.
+
+    The residue families are excluded from the claim but not from the count. "other" is
+    what our own rule table failed to match, so leading with it would publish a gap in
+    the normalization as a fact about the market; its share is already reported as a
+    quality metric and the chart below still shows it. The denominator stays every junior
+    offer, and the qualifier weakens to "classified" whenever the residue is the larger
+    bucket — the reader is told that a claim about the top family is a claim about the
+    part we can name.
     """
     total = int(junior_roles["offers"].sum())
     if not total:
         return {"claim": "Not enough junior offers in this snapshot to say.", "n": 0}
-    top = junior_roles.iloc[0]
-    support = int(junior_roles.loc[junior_roles["role_family"] == "support", "offers"].sum())
+    is_residue = junior_roles["role_family"].isin(config.ROLE_FAMILY_RESIDUE)
+    classified = junior_roles[~is_residue]
+    if classified.empty:
+        return {
+            "claim": "No junior offer in this snapshot could be classified",
+            "detail": f"All {total} offers open to juniors fell outside the rule table.",
+            "n": total,
+        }
+    top = classified.iloc[0]
+    residue_max = int(junior_roles.loc[is_residue, "offers"].max()) if is_residue.any() else 0
+    rank = (
+        "the largest single category"
+        if int(top["offers"]) >= residue_max
+        else "the largest classified category"
+    )
     if top["role_family"] == "support":
         claim = "Most junior IT offers in Poland are not development jobs"
         detail = (
-            f"{support} of {total} offers open to juniors are IT support and "
-            f"administration — the largest single category, ahead of every engineering "
-            f"discipline."
+            f"{int(top['offers'])} of {total} offers open to juniors are IT support and "
+            f"administration — {rank}, ahead of every engineering discipline."
         )
     else:
         claim = f"The largest junior category is {top['role_family']}"
-        detail = f"{int(top['offers'])} of {total} offers open to juniors."
+        detail = (
+            f"{int(top['offers'])} of {total} offers open to juniors are "
+            f"{top['role_family']} work — {rank}."
+        )
     return {"claim": claim, "detail": detail, "n": total}
 
 
