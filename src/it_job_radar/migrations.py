@@ -19,6 +19,8 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable
 
+from it_job_radar import config
+
 Step = Callable[[sqlite3.Connection], None]
 
 # --- v1: the schema as it existed before migrations were introduced ----------
@@ -206,6 +208,26 @@ def _v7_dimension_metrics(conn: sqlite3.Connection) -> None:
     conn.execute(_DIMENSION_METRICS)
 
 
+def _v8_withhold_impossible_monthly(conn: sqlite3.Connection) -> None:
+    """Withdraw monthly equivalents that no advert can have meant, keeping what was said.
+
+    The conversion is faithful to the source and still wrong: an employer filed 14 500 PLN
+    as an *hourly* B2B rate, which ×160 h is 2.3 M a month — enough on its own to move a
+    median and its interval. ``normalize_salary`` now refuses to derive such a figure, but
+    rows collected before that guard already hold it, and salaries are written once per
+    offer rather than re-derived on each observation, so nothing else would repair them.
+
+    Only the derived columns are cleared. ``salary_from``, ``salary_to`` and ``time_unit``
+    keep exactly what the offer published, because the error is the source's to own and
+    ours to refuse to republish.
+    """
+    conn.execute(
+        "UPDATE offer_salaries SET monthly_from = NULL, monthly_to = NULL "
+        "WHERE monthly_from > ? OR monthly_to > ?",
+        (config.SALARY_SANITY_MAX, config.SALARY_SANITY_MAX),
+    )
+
+
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (1, "baseline schema", _v1_baseline),
     (2, "population frame", _v2_population_frame),
@@ -214,6 +236,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (5, "technology provenance", _v5_technology_provenance),
     (6, "one row per technology", _v6_one_row_per_technology),
     (7, "dated per-dimension metrics", _v7_dimension_metrics),
+    (8, "withhold impossible monthly equivalents", _v8_withhold_impossible_monthly),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

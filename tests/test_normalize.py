@@ -64,6 +64,35 @@ def test_normalize_salary_b2b_hourly_scaled_to_monthly():
     assert result["monthly_to"] == 150 * 160
 
 
+def test_an_impossible_monthly_equivalent_is_withheld_not_guessed():
+    """A real offer filed 14 500 PLN as an hourly B2B rate — 2.3 M a month once converted.
+
+    The reported amount and unit are the source's statement and stay untouched; only the
+    figure we derived is withdrawn, because publishing it would move a median on its own
+    and reinterpreting it as monthly would be us inventing what the employer meant.
+    """
+    contract = {
+        "type": "kontrakt B2B", "salary_from": 14500, "salary_to": 15500,
+        "currency": "zł", "kind": "netto (+ VAT)", "time_unit": "godzinowo",
+    }
+    result = normalize.normalize_salary(contract)
+    assert result["salary_from"] == 14500
+    assert result["time_unit"] == "godzinowo"
+    assert result["monthly_from"] is None
+    assert result["monthly_to"] is None
+
+
+def test_a_high_but_possible_rate_survives():
+    """The guard rejects the impossible, not the well-paid: 300 PLN/h is a real rate."""
+    contract = {
+        "type": "kontrakt B2B", "salary_from": 300, "salary_to": 400,
+        "currency": "zł", "kind": "netto (+ VAT)", "time_unit": "godzinowo",
+    }
+    result = normalize.normalize_salary(contract)
+    assert result["monthly_from"] == 300 * 160
+    assert result["monthly_to"] == 400 * 160
+
+
 def test_normalize_salary_employment_gross_monthly():
     contract = {
         "type": "umowa o pracę", "salary_from": 15000, "salary_to": 20000,
