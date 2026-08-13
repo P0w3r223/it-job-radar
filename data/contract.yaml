@@ -49,6 +49,12 @@ tables:
         allowed_from: CONTRACT_KINDS
       currency:
         allowed_from: KNOWN_CURRENCIES
+      # A unit outside this set means `normalize_salary` could not convert the amount, so
+      # the figure is withheld and the page then calls it a unit error — a different
+      # statement about the employer than "we do not handle this unit". Publication stops
+      # instead, and the domain is the same tuple the converter reads.
+      time_unit:
+        allowed_from: KNOWN_TIME_UNITS
       # The floor is not "not negative": an hourly rate filed as a monthly one lands at
       # 14-180 PLN and passes any check that only forbids nonsense below zero.
       monthly_from:
@@ -62,13 +68,6 @@ tables:
         violating: monthly_from IS NOT NULL AND monthly_to IS NOT NULL AND monthly_from > monthly_to
       - name: a disclosed salary carries its currency and kind
         violating: monthly_from IS NOT NULL AND (currency IS NULL OR kind IS NULL)
-      # Not a domain check on a normalized column but a tripwire on free text: an unseen
-      # unit would be silently withheld and then described on the page as a unit error,
-      # which is a different statement about the employer.
-      - name: a published amount carries a unit we can convert
-        violating: >
-          salary_from IS NOT NULL AND time_unit IS NOT NULL
-          AND time_unit NOT IN ('miesięcznie', 'monthly', 'godzinowo', 'hourly')
 
   snapshot_dimension_metrics:
     columns:
