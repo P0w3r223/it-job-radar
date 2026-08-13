@@ -157,6 +157,11 @@ def _classify_kind(kind_code: str | None) -> str | None:
     return None
 
 
+def _beyond_sanity(monthly: float | None) -> bool:
+    """Whether a monthly equivalent is outside anything a job advert can plausibly mean."""
+    return monthly is not None and monthly > config.SALARY_SANITY_MAX
+
+
 def normalize_salary(contract: dict) -> dict:
     """Normalize one contract's salary: ISO currency, kind, and a monthly-equivalent range.
 
@@ -173,6 +178,17 @@ def normalize_salary(contract: dict) -> dict:
 
     salary_from = contract.get("salary_from")
     salary_to = contract.get("salary_to")
+    monthly_from = salary_from * multiplier if (salary_from and multiplier) else None
+    monthly_to = salary_to * multiplier if (salary_to and multiplier) else None
+    # A unit the employer cannot have meant. theprotocol's form takes the amount and the
+    # unit as separate fields, so nothing stops a monthly figure being filed as hourly:
+    # one offer in the 2026-08-13 sample published 14 500 PLN "godzinowo", which converts
+    # to 2.3 M a month and would move a bootstrap interval on its own. We do not guess what
+    # was meant — the amount and the unit stay exactly as published, and only the figure we
+    # derived is withheld, because it is ours and we know it is false.
+    # `quality.salary_monthly_withheld` counts these, so the refusal is visible.
+    if _beyond_sanity(monthly_from) or _beyond_sanity(monthly_to):
+        monthly_from = monthly_to = None
     return {
         "contract_type": contract.get("type"),
         "kind": _classify_kind(contract.get("kind")),
@@ -180,8 +196,8 @@ def normalize_salary(contract: dict) -> dict:
         "salary_from": salary_from,
         "salary_to": salary_to,
         "time_unit": unit or None,
-        "monthly_from": salary_from * multiplier if (salary_from and multiplier) else None,
-        "monthly_to": salary_to * multiplier if (salary_to and multiplier) else None,
+        "monthly_from": monthly_from,
+        "monthly_to": monthly_to,
     }
 
 
