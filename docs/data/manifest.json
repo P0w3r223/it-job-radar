@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-08-13T12:40:50",
-  "git_sha": "2b8e44d",
+  "generated_at": "2026-08-13T13:00:13",
+  "git_sha": "29796ea",
   "schema_version": 9,
   "snapshot": {
-    "id": 15,
-    "kind": "collect",
+    "id": 16,
+    "kind": "observe",
     "observed_date": "2026-08-13",
-    "started_at": "2026-08-13T12:16:54"
+    "started_at": "2026-08-13T13:00:03"
   },
   "coverage": {
     "offers_listed": 6530,
@@ -18,17 +18,17 @@
     "offer_seniority": 4060,
     "offer_work_modes": 5395,
     "offer_locations": 3374,
-    "offer_technologies": 17422,
+    "offer_technologies": 17397,
     "offer_salaries": 4612,
-    "snapshots": 15,
-    "snapshot_stats": 194,
-    "snapshot_dimension_metrics": 632,
+    "snapshots": 16,
+    "snapshot_stats": 208,
+    "snapshot_dimension_metrics": 742,
     "sitemap_offers": 7127
   },
-  "bytes": 631501,
+  "bytes": 634765,
   "quality": {
     "salary_disclosure_rate": 0.2791,
-    "stored_alias_coverage_rate": 0.6915,
+    "stored_alias_coverage_rate": 0.7336,
     "salary_kind_unknown_share": 0.7684,
     "salary_monthly_withheld": 13.0,
     "role_family_other_share": 0.069,

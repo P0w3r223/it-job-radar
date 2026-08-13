@@ -96,7 +96,7 @@ bpmn: []
 oracle: ["oracle db", "oracle database"]
 databricks: []
 bigquery: ["google bigquery"]
-snowflake: []
+snowflake: ["snowflake data cloud"]
 rabbitmq: []
 "power bi": ["microsoft power bi", "ms power bi", powerbi]
 excel: ["microsoft excel", "ms excel", vba]
@@ -114,20 +114,20 @@ salesforce: []
 # Infrastructure / administration
 "windows server": []
 "active directory": ["azure active directory", "azure ad", "entra id"]
-powershell: []
+powershell: ["powershell ise"]
 bash: ["shell scripting", "bash scripting"]
 cisco: []
 
 # ML / AI
 llm: [llms, "large language models", "large language model"]
-langchain: []
+langchain: ["langchain/langgraph"]  # the source writes the pair as one name
 pytorch: []
 tensorflow: []
 "scikit-learn": [sklearn, "scikit learn"]
 
 # Testing
 playwright: []
-selenium: []
+selenium: ["selenium webdriver", webdriver]
 cypress: []
 
 # Second pass over the same report, after the first round shortened it.
@@ -181,7 +181,7 @@ soql: []
 apex: []
 
 # Testing, build, quality
-junit: []
+junit: ["junit 5", junit5]
 jest: []
 gradle: []
 sonarqube: [sonar, "sonar qube"]
@@ -232,3 +232,60 @@ adobe photoshop: [photoshop]
 # Networking
 "tcp/ip": ["tcp ip", tcpip]
 dhcp: []
+
+# Fourth pass over the same report, after two 1000-offer collects took coverage past a
+# third of the market. The line held again and needs no restating; what this pass adds is
+# mostly *spelling unification* rather than new vocabulary — "junit 5", "selenium
+# webdriver", "powershell ise" and "snowflake data cloud" were each costing a name the
+# dictionary already knew. Still out for the same reason as before: cloud computing, api,
+# ai, data science, data modeling, data governance, network administration, operating
+# systems, virtualization, erp, dcx, treasury, banking & finance (activity words that
+# reach the data under their own name), and agile, scrum, itil, itsm, prince2, pmp, csm,
+# spm, stakeholder management (ways of working).
+
+# Formats and interfaces
+json: []
+yaml: [yml]
+swagger: [openapi, "swagger/openapi"]
+xslt: []
+vpn: []
+
+# Testing
+pytest: []
+mockito: []
+selenide: []
+appium: []
+gatling: []
+jmeter: ["apache jmeter"]
+cucumber: ["cucumber.js", cucumberjs]
+"rest assured": ["rest-assured"]
+
+# Data platforms and pipelines
+dbt: ["data build tool", "data built tool"]
+"data lake": [lakehouse, "data lakehouse"]
+"data warehouse": [dwh, "hurtownia danych"]
+"azure sql": ["azure sql database"]
+"power query": []
+splunk: []
+"google analytics": [ga4]
+mulesoft: [mule, "mulesoft anypoint"]
+
+# ML / AI products
+mlflow: []
+xgboost: []
+"vertex ai": [vertex, "google vertex ai"]
+openai: []
+claude: ["claude code"]
+"github copilot": [copilot]
+
+# Observability
+opentelemetry: [otel, "open telemetry"]
+
+# Platforms and administration
+"blue prism": []
+"vmware cloud foundation": [vcf, "vcf 9.1"]
+"vmware hcx": [hcx, "hcx migration skills"]
+argocd: ["argo cd"]
+jpa: []
+redux: []
+"microsoft office": ["ms office", "office 365", "microsoft 365"]
