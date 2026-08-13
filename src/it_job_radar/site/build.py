@@ -109,6 +109,15 @@ def _role_bars(frame: pd.DataFrame, total: int) -> list[charts.Bar]:
     ]
 
 
+def _vacancy_count(connection) -> int:
+    """Distinct jobs behind the adverts — the unit every demand figure on the page counts."""
+    return int(
+        connection.execute(
+            "SELECT COUNT(DISTINCT COALESCE(vacancy_id, offer_id)) FROM offers"
+        ).fetchdf().iloc[0, 0]
+    )
+
+
 def _headline(junior_roles: pd.DataFrame) -> dict:
     """The finding the page leads with, derived rather than asserted.
 
@@ -127,7 +136,7 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
     if not total:
         return {
             "claim": "Not enough junior offers in this snapshot to say.",
-            "detail": "No offer in this snapshot is open to juniors.",
+            "detail": "No vacancy in this snapshot is open to juniors.",
             "n": 0,
         }
     is_residue = junior_roles["role_family"].isin(config.ROLE_FAMILY_RESIDUE)
@@ -135,7 +144,7 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
     if classified.empty:
         return {
             "claim": "No junior offer in this snapshot could be classified",
-            "detail": f"All {total} offers open to juniors fell outside the rule table.",
+            "detail": f"All {total} vacancies open to juniors fell outside the rule table.",
             "n": total,
         }
     top = classified.iloc[0]
@@ -159,13 +168,13 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
         # its own family: support now means the desk and the lines behind it, and the claim
         # has to mean what the family means.
         detail = (
-            f"{int(top['offers'])} of {total} offers open to juniors are IT support and "
+            f"{int(top['offers'])} of {total} vacancies open to juniors are IT support and "
             f"service-desk work — {rank}. Development accounts for {development}."
         )
     else:
         claim = f"The largest junior category is {top['role_family']}"
         detail = (
-            f"{int(top['offers'])} of {total} offers open to juniors are "
+            f"{int(top['offers'])} of {total} vacancies open to juniors are "
             f"{top['role_family']} work — {rank}."
         )
     return {"claim": claim, "detail": detail, "n": total}
@@ -198,6 +207,8 @@ def gather(dataset_dir: Path | None = None) -> dict:
             "kpis": _kpis(manifest),
             "strata": strata,
             "min_stratum_n": config.MIN_STRATUM_N,
+            "max_ci_width": config.MAX_CI_WIDTH_SHARE,
+            "vacancy_count": _vacancy_count(connection),
             "thin_strata": {
                 level: count for level, count in strata.items() if count < config.MIN_STRATUM_N
             },
@@ -256,7 +267,7 @@ def _disclosure_note(withheld: int) -> str:
     """
     if not withheld:
         return "the rest publish no figure at all"
-    return f"the rest none — and {withheld} we withheld as unit errors"
+    return f"of the rest, {withheld} published one we withheld as a unit error"
 
 
 def _kpis(manifest: dict) -> list[Kpi]:
@@ -268,7 +279,7 @@ def _kpis(manifest: dict) -> list[Kpi]:
         Kpi("Of the live market", f"{coverage['share']:.1%}",
             f"{coverage['attributes_known']} of {coverage['offers_listed']} listed today"),
         Kpi("Disclose a salary", f"{quality['salary_disclosure_rate']:.0%}",
-            _disclosure_note(int(quality.get("salary_monthly_withheld", 0)))),
+            _disclosure_note(int(quality["salary_monthly_withheld"]))),
         Kpi("Thin strata", f"{int(quality['strata_below_min_n'])}",
             f"seniority levels under n={config.MIN_STRATUM_N}, greyed below"),
     ]

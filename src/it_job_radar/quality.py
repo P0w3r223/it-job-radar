@@ -133,14 +133,18 @@ def snapshot_metrics(
         "SELECT COUNT(DISTINCT offer_id) FROM offer_salaries WHERE monthly_from IS NOT NULL",
     )
     unknown_kind = _scalar(conn, "SELECT COUNT(*) FROM offer_salaries WHERE kind IS NULL")
-    # An amount and a unit were published, and we still have no monthly equivalent: either
-    # the conversion was beyond anything an advert can mean (see migration v8) or the unit
-    # is one we do not convert. Counting it keeps the refusal in sight — a withheld figure
-    # that nobody reports is indistinguishable from a salary that was never disclosed.
+    # Offers whose *only* salary evidence was withheld, which is what the page's sentence
+    # about them means. Counting rows instead said "17" where 15 was true: two of those
+    # offers also state a figure we could convert, so they are already inside the disclosure
+    # rate rather than outside it. One offer can also mis-file both a B2B and a UoP figure,
+    # so rows and offers drift apart as the sample grows even when today they agree.
     withheld = _scalar(
         conn,
-        "SELECT COUNT(*) FROM offer_salaries "
-        "WHERE salary_from IS NOT NULL AND time_unit IS NOT NULL AND monthly_from IS NULL",
+        "SELECT COUNT(DISTINCT w.offer_id) FROM offer_salaries w "
+        "WHERE w.salary_from IS NOT NULL AND w.time_unit IS NOT NULL "
+        "  AND w.monthly_from IS NULL "
+        "  AND NOT EXISTS (SELECT 1 FROM offer_salaries d "
+        "                  WHERE d.offer_id = w.offer_id AND d.monthly_from IS NOT NULL)",
     )
     withheld_units = ", ".join(
         f"{row[0]}x{row[1]}"
@@ -154,6 +158,12 @@ def snapshot_metrics(
         conn, "SELECT COUNT(*) FROM offers WHERE role_family = ?", (config.ROLE_FAMILY_OTHER,)
     )
     unclassified = _scalar(conn, "SELECT COUNT(*) FROM offers WHERE role_family IS NULL")
+    # How much of the sample is one job advertised many times. Every demand figure is
+    # counted per vacancy for this reason, and a reader who is told 4108 offers deserves to
+    # know how many distinct jobs that was.
+    vacancies = _scalar(
+        conn, "SELECT COUNT(DISTINCT COALESCE(vacancy_key, offer_id)) FROM offers"
+    )
 
     thin = [
         (row[0], row[1])
@@ -179,6 +189,10 @@ def snapshot_metrics(
         "stored_alias_coverage_rate": Metric(coverage.rate, detail=unmatched or None),
         "salary_kind_unknown_share": Metric(unknown_kind / salary_rows if salary_rows else 0.0),
         "salary_monthly_withheld": Metric(withheld, detail=withheld_units or None),
+        "duplicate_posting_share": Metric(
+            1 - vacancies / offers if offers else 0.0,
+            detail=f"{vacancies} vacancies behind {offers} adverts",
+        ),
         "role_family_other_share": Metric(other_roles / offers if offers else 0.0),
         "role_family_unclassified": Metric(unclassified),
         "strata_below_min_n": Metric(

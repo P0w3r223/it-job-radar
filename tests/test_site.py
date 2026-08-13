@@ -199,7 +199,7 @@ def test_page_publishes_the_query_behind_every_metric(site):
     _, dataset = site
     html = build.render(dataset)
     assert "top_technologies.sql" in html
-    assert "COUNT(DISTINCT t.offer_id)" in html  # the verbatim SQL, not a description
+    assert "COUNT(DISTINCT COALESCE(o.vacancy_id, t.offer_id))" in html  # the verbatim SQL, not a description
 
 
 def test_page_carries_provenance_and_social_metadata(site):

@@ -38,14 +38,14 @@
 <h2>What a junior offer actually is</h2>
 <p>
   Job boards present junior roles as one category. Split by the kind of work the title
-  describes, they are not: IT support and administration is the largest single group,
+  describes, they are not: IT support and the service desk is the largest single group,
   ahead of every engineering discipline. A ranking of "top technologies for juniors" taken
   without that split describes a job most of its readers are not applying for.
 </p>
 <figure>
   <div class="chart-wrap">{{ charts.junior_roles }}</div>
   <figcaption>
-    Offers open to juniors by role family. <strong>n = {{ junior_n }}</strong>.
+    Vacancies open to juniors by role family. <strong>n = {{ junior_n }}</strong>.
   </figcaption>
 </figure>
 {% if junior_n < min_stratum_n %}
@@ -60,18 +60,21 @@
 <figure>
   <div class="chart-wrap">{{ charts.technologies }}</div>
   <figcaption>
-    Distinct offers listing each technology as a <em>requirement</em>. Nice-to-haves are
-    excluded: pooling them overweights optional skills.
+    Distinct <em>vacancies</em> listing each technology as a requirement — not adverts.
+    One employer publishes a single role once per city, so counting adverts would let
+    posting volume stand in for demand ({{ '%.0f%%' | format(manifest.quality.duplicate_posting_share * 100) }}
+    of adverts repeat a vacancy). Nice-to-haves are excluded: pooling them overweights
+    optional skills.
   </figcaption>
 </figure>
 
-<h2>Offers by role family</h2>
+<h2>Vacancies by role family</h2>
 <figure>
   <div class="chart-wrap">{{ charts.roles }}</div>
   <figcaption>
     Classified from the title by an auditable rule table. Titles matching nothing stay as
     <code>other</code> rather than being forced into a family
-    ({{ '%.0f%%' | format(manifest.quality.role_family_other_share * 100) }} of offers).
+    ({{ '%.0f%%' | format(manifest.quality.role_family_other_share * 100) }} of adverts).
   </figcaption>
 </figure>
 
@@ -92,7 +95,8 @@
 </figure>
 {% if thin_strata %}
 <p class="note">
-  Greyed rows rest on fewer than {{ min_stratum_n }} offers:
+  Greyed rows rest on fewer than {{ min_stratum_n }} vacancies, or on an interval wider
+  than {{ '%.0f%%' | format(max_ci_width * 100) }} of the median it surrounds:
   {% for level, count in thin_strata.items() %}{{ level }} ({{ count }}){% if not loop.last %}, {% endif %}{% endfor %}.
   They are shown rather than dropped, because a silently missing level is harder to notice
   than a visibly uncertain one.
@@ -103,7 +107,7 @@
 <figure>
   <div class="chart-wrap">{{ charts.work_modes }}</div>
   <figcaption>
-    An offer can list several modes, so these deliberately sum to more than the offer
+    A vacancy can list several modes, so these deliberately sum to more than the vacancy
     count — which is why this is not a pie chart.
   </figcaption>
 </figure>
@@ -113,10 +117,14 @@
   <tbody>
     <tr><th>Offers listed by the source today</th><td class="num">{{ manifest.coverage.offers_listed }}</td></tr>
     <tr><th>Offers whose attributes we hold</th><td class="num">{{ manifest.coverage.attributes_known }}</td></tr>
+    <tr>
+      <th>Distinct vacancies behind them <span class="hint">one role advertised once per city is one vacancy</span></th>
+      <td class="num">{{ vacancy_count }}</td>
+    </tr>
     <tr><th>Coverage</th><td class="num">{{ '%.1f%%' | format(manifest.coverage.share * 100) }}</td></tr>
     <tr><th>Offers disclosing a salary</th><td class="num">{{ '%.0f%%' | format(manifest.quality.salary_disclosure_rate * 100) }}</td></tr>
     <tr>
-      <th>Salary figures we withheld <span class="hint">published in a unit the amount contradicts</span></th>
+      <th>Offers whose only salary figure we withheld <span class="hint">published in a unit the amount contradicts</span></th>
       <td class="num">{{ manifest.quality.salary_monthly_withheld | int }}</td>
     </tr>
     <tr><th>Snapshot age</th><td class="num">{{ manifest.quality.freshness_days | int }} days</td></tr>

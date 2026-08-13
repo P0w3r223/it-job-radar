@@ -77,18 +77,18 @@ def test_counts_and_medians_are_both_recorded(published):
     _, out = published
     metrics = set(_series(out)["metric"])
 
-    assert "technology_offers" in metrics
-    assert "stratum_offers" in metrics
-    assert "work_mode_offers" in metrics
-    assert f"{config.HEADLINE_SENIORITY}_role_family_offers" in metrics
-    assert f"salary_median_from_{config.CONTRACT_B2B}" in metrics
+    assert "technology_vacancies" in metrics
+    assert "stratum_vacancies" in metrics
+    assert "work_mode_vacancies" in metrics
+    assert f"{config.HEADLINE_SENIORITY}_role_family_vacancies" in metrics
+    assert f"vacancy_salary_median_from_{config.CONTRACT_B2B}" in metrics
 
 
 def test_a_technology_is_a_share_of_the_offers_that_could_have_listed_it(published):
     """Not of the sum over technologies: one offer lists several, so that sum is not a base."""
     _, out = published
     series = _series(out)
-    java = series[(series["metric"] == "technology_offers") & (series["dimension"] == "java")]
+    java = series[(series["metric"] == "technology_vacancies") & (series["dimension"] == "java")]
 
     assert float(java["value"].iloc[0]) == 3  # a1, a2, a3
     assert int(java["n"].iloc[0]) == 4  # every analysed offer, not 3 + 1 + 1
@@ -98,7 +98,7 @@ def test_the_headline_segment_is_a_share_of_itself(published):
     """Role families partition the offers they describe, so the query's own total is right."""
     _, out = published
     series = _series(out)
-    metric = f"{config.HEADLINE_SENIORITY}_role_family_offers"
+    metric = f"{config.HEADLINE_SENIORITY}_role_family_vacancies"
     junior = series[series["metric"] == metric]
 
     assert int(junior["value"].sum()) == 2  # a3 and a4
@@ -118,7 +118,7 @@ def test_a_stored_median_is_the_number_the_page_prints(published):
 
     series = _series(out)
     stored = series[
-        (series["metric"] == f"salary_median_from_{config.CONTRACT_B2B}")
+        (series["metric"] == f"vacancy_salary_median_from_{config.CONTRACT_B2B}")
         & (series["dimension"] == "senior")
     ]
     assert float(stored["value"].iloc[0]) == pytest.approx(float(expected))
@@ -162,7 +162,7 @@ def test_measuring_a_dataset_with_no_offers_yields_no_points(tmp_path):
     out = tmp_path / "dataset"
     export.write_dataset(conn, out)
 
-    assert history.measure(0, dataset_dir=out) == []
+    assert history.measure(dataset_dir=out) == []
     conn.close()
 
 

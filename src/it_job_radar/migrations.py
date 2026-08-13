@@ -248,6 +248,24 @@ def _v9_withhold_monthly_below_the_floor(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v10_vacancy_key(conn: sqlite3.Connection) -> None:
+    """Give an offer somewhere to record which *job* it advertises.
+
+    Measured when the column was added: 44% of stored offers sat in a group sharing one
+    title and one company — one employer publishing a single role once per city, 18 adverts
+    for the same Cloud Data Engineer. Every published demand figure counted those eighteen
+    times, and deduplicating the ranking moved azure from third place to seventh.
+
+    The column is left empty here. Like `role_family`, it is re-derived from the title on
+    every observation, so a change to how the key is built repairs what is already stored
+    instead of freezing the first version of the rule into the data.
+    """
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(offers)")}
+    if "vacancy_key" not in columns:
+        conn.execute("ALTER TABLE offers ADD COLUMN vacancy_key TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_offers_vacancy ON offers(vacancy_key)")
+
+
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (1, "baseline schema", _v1_baseline),
     (2, "population frame", _v2_population_frame),
@@ -258,6 +276,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (7, "dated per-dimension metrics", _v7_dimension_metrics),
     (8, "withhold impossible monthly equivalents", _v8_withhold_impossible_monthly),
     (9, "withhold monthly equivalents below the floor", _v9_withhold_monthly_below_the_floor),
+    (10, "vacancy key", _v10_vacancy_key),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

@@ -3,6 +3,11 @@
 -- Rows, not medians, for the same reason as salary_rows.sql: the caller attaches the
 -- interval and the `n`.
 --
+-- Per ADVERT, deliberately, while every other published figure counts vacancies. This
+-- question is about where work is offered, and a role advertised in eighteen cities really
+-- is offered in eighteen cities; collapsing it to one would erase the geography the chart
+-- exists to show.
+--
 -- The two groups overlap by construction — a Wrocław offer can also be remote — so this
 -- compares two overlapping populations, not a partition. `group_name` labels which side a
 -- row was counted on; a row can appear on both.

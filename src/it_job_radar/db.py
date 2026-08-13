@@ -349,10 +349,11 @@ def write_offers(conn: sqlite3.Connection, offers: list[dict], collected_date: s
     for offer in offers:
         conn.execute(
             "INSERT OR REPLACE INTO offers "
-            "  (offer_id, title, company, offer_url, collected_date, role_family) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "  (offer_id, title, company, offer_url, collected_date, role_family, vacancy_key) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (offer["offer_id"], offer.get("title"), offer.get("company"),
-             offer.get("offer_url"), collected_date, offer.get("role_family")),
+             offer.get("offer_url"), collected_date, offer.get("role_family"),
+             offer.get("vacancy_key")),
         )
         _replace_children(conn, offer)
     conn.commit()
@@ -369,6 +370,24 @@ def offer_titles(conn: sqlite3.Connection) -> list[tuple[str, str | None, str | 
         (row[0], row[1], row[2])
         for row in conn.execute("SELECT offer_id, title, role_family FROM offers")
     ]
+
+
+def offer_identities(conn: sqlite3.Connection) -> list[tuple[str, str | None, str | None, str | None]]:
+    """``(offer_id, title, company, current vacancy_key)`` for every stored offer."""
+    return [
+        (row[0], row[1], row[2], row[3])
+        for row in conn.execute("SELECT offer_id, title, company, vacancy_key FROM offers")
+    ]
+
+
+def set_vacancy_keys(conn: sqlite3.Connection, rows: list[tuple[str, str | None]]) -> int:
+    """Apply ``(offer_id, vacancy_key)`` groupings. Returns the count updated."""
+    conn.executemany(
+        "UPDATE offers SET vacancy_key = ? WHERE offer_id = ?",
+        [(key, offer_id) for offer_id, key in rows],
+    )
+    conn.commit()
+    return len(rows)
 
 
 def set_role_families(conn: sqlite3.Connection, rows: list[tuple[str, str]]) -> int:

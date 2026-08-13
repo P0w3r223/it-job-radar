@@ -50,14 +50,38 @@ _CURRENCY_MAP = {
 }
 
 
+class AliasConflict(ValueError):
+    """Raised when the dictionary would silently put one technology in two buckets."""
+
+
 def load_tech_aliases(path=config.TECH_ALIASES_PATH) -> dict[str, str]:
-    """Load the alias dictionary as a flat ``alias(lowercase) -> canonical`` index."""
+    """Load the alias dictionary as a flat ``alias(lowercase) -> canonical`` index.
+
+    The flattening is what makes validation necessary: two entries claiming the same name
+    used to resolve by file order, silently. That happened — ``microsoft 365`` was both a
+    canonical of its own and an alias of ``microsoft office``, so ``m365`` and ``ms office``
+    landed in different buckets depending on which spelling an advert used. That is the
+    ``ReactJS`` / ``React.js`` failure this dictionary exists to prevent, committed by the
+    dictionary itself. At ~200 canonicals and a pass added every few hundred offers, the
+    only durable fix is refusing to load a file that contains one.
+    """
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    canonicals = {str(name).lower() for name in raw}
     index: dict[str, str] = {}
     for canonical, aliases in raw.items():
         index[canonical.lower()] = canonical
         for alias in aliases or []:
-            index[str(alias).lower()] = canonical
+            alias = str(alias).lower()
+            if alias in canonicals:
+                raise AliasConflict(
+                    f"{alias!r} is an alias of {canonical!r} and a canonical name of its own"
+                )
+            claimed = index.get(alias)
+            if claimed is not None and claimed != canonical:
+                raise AliasConflict(
+                    f"{alias!r} is claimed by both {claimed!r} and {canonical!r}"
+                )
+            index[alias] = canonical
     return index
 
 
@@ -78,6 +102,25 @@ def load_normalization(
         tech_aliases=load_tech_aliases(aliases_path),
         role_rules=load_role_families(roles_path),
     )
+
+
+def vacancy_key(title: str | None, company: str | None) -> str | None:
+    """The identity of the *job*, as opposed to the identity of the advert.
+
+    One employer publishes a single role as one advert per city — 18 of them for the same
+    Cloud Data Engineer, each with its own offer id, the same title, the same technologies
+    and the same salary. Counted per advert, that employer casts eighteen votes in every
+    demand ranking, and the bias grows with the sample rather than washing out.
+
+    The key is deliberately literal: lowercased title and company with whitespace collapsed,
+    nothing else. Stripping the gender markers this market appends ("(k/m)", "(f/m/x)")
+    would merge adverts an employer chose to phrase differently, and any cleverer key would
+    start merging genuinely separate openings — an error nobody could see afterwards. This
+    one only ever merges adverts that are character-for-character the same job.
+    """
+    if not title or not company:
+        return None  # nothing to group on; the advert stands alone
+    return f"{' '.join(title.lower().split())}|{' '.join(company.lower().split())}"
 
 
 def classify_role_family(title: str | None, rules: RoleRules) -> str:
@@ -214,6 +257,10 @@ def normalize_offer(offer: dict, normalization: Normalization) -> dict:
     alias_index = normalization.tech_aliases
     return {
         "role_family": classify_role_family(offer.get("title"), normalization.role_rules),
+        # Derived on the way in as well as re-derived on every observation. Without it here,
+        # offers from a fresh collect would reach `export` with no key at all and be counted
+        # one vote each until the next `observe` happened to repair them.
+        "vacancy_key": vacancy_key(offer.get("title"), offer.get("company")),
         "offer_id": offer.get("offer_id"),
         "title": offer.get("title"),
         "company": offer.get("company"),
