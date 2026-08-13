@@ -20,6 +20,7 @@ src/it_job_radar/
   sampling.py              # fetch-queue construction (pure): inflow -> backlog -> audit
   normalize.py             # tech aliases, role families, seniority (PL), currency, B2B/UoP
   quality.py               # quality metrics + data contract (violating-predicate rules)
+  analytics/stats.py       # bootstrap intervals, count AND interval-width suppression
   export.py                # redacted Parquet dataset (ADR 0002)
   analytics/queries/*.sql  # ONE definition per published metric — edit metrics here
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
@@ -46,9 +47,21 @@ docs/research/             # data-source research + legal/ethics
 - **Cohorts are not interchangeable.** Offers already listed at day 0 have an unknown
   entry date (left truncation) and must never be used for lifetime estimation.
 - **B2B ≠ UoP.** Salary `kindCode` is `gross` (employment) or `netto (+ VAT)` (B2B);
-  never average them together. Watch `time_unit` (`godzinowo` hourly vs monthly).
+  never average them together. Watch `time_unit` (`godzinowo` hourly vs monthly), and note
+  that the source lets an employer file one unit under the other — a monthly equivalent
+  outside `SALARY_SANITY_MIN..MAX` is withheld rather than published or reinterpreted.
+- **Count vacancies, not adverts.** One role is published once per city, so ~36% of adverts
+  repeat a job. Every counting query groups on `vacancy_id` (title + company, hashed on
+  export); `city_vs_remote_rows` is the deliberate exception, because eighteen cities really
+  are eighteen cities. Changing this changes what every published metric means — the series
+  metrics were renamed rather than continued when it did.
 - **Normalize before aggregating.** Unify technology aliases and seniority labels first,
-  or trends are noise (`ReactJS` vs `React.js`).
+  or trends are noise (`ReactJS` vs `React.js`). `load_tech_aliases` refuses to load a
+  dictionary where one name is both a canonical and an alias, or where two canonicals claim
+  the same alias — that failure had already happened once, silently.
+- **A figure is marked by measured precision, not only by count.** `MIN_STRATUM_N` asks how
+  many observations; `MAX_CI_WIDTH_SHARE` asks what they bought. Both, because a narrow
+  interval on two rows is degeneracy.
 - **Separate I/O from logic.** Parsing (`parse_offer`, `offer_id_from_url`) and queue
   construction (`sampling.build_queue`) are pure and unit-tested; network lives in
   `fetch_*`, database access in `db.py`.
