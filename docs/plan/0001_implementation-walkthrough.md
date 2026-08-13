@@ -482,8 +482,9 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
 (PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
-repo. The day's run is on `chore/collect-2026-08-13` (PR #7). 159 tests green; coverage
-**17.9%** (1171 of 6530), three dated points per metric. What remains is still waiting on
+repo. PR #7 is merged and the live page serves it. The second run of the day is on
+`chore/collect-2026-08-13-second` (PR #8). 162 tests green; coverage **32.9%**
+(2150 of 6530), four dated points per metric. What remains is still waiting on
 **days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
 
 ### Next session, in order
@@ -537,13 +538,23 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
 - **`.gitattributes` pins `docs/index.html` to LF.** Without it a Windows checkout converts
   the committed page to CRLF and every local rebuild reports a stale page — a failure with
   no commit behind it, which cost a debugging detour once already.
-- **Coverage is 17.9%** (1171 of 6530 listed offers). The junior finding rests on 85 offers,
-  above `MIN_STRATUM_N`; more `collect` runs tighten it further.
+- **Coverage is 32.9%** (2150 of 6530 listed offers). The junior finding rests on 162
+  offers, above `MIN_STRATUM_N`; more `collect` runs tighten it further.
+- **A derived number we know is false is never published.** `normalize_salary` withholds a
+  monthly equivalent beyond `SALARY_SANITY_MAX` — one offer filed 14 500 PLN as an hourly
+  rate — while the reported amount and unit stay as the source wrote them. Migration v8
+  repairs stored rows, because salaries are written once per offer and no observation
+  re-derives them. `quality.salary_monthly_withheld` counts the refusals, so a withheld
+  figure never reads as a salary that was simply not disclosed.
 - **The residue cannot carry the headline.** `other` and `unclassified` are excluded from
   the claim `_headline` derives, because leading with them publishes a gap in our own rule
   table as a fact about the market — which is what happened on 2026-08-13, when `other`
   tied `support` and won the alphabetical tie-break. They stay in the denominator, in the
-  chart and in `role_family_other_share`, which is where a rising residue belongs.
+  chart and in `role_family_other_share`, which is where a rising residue belongs. By the
+  second collect that day `other` was the largest junior bucket outright (44 against
+  support's 32) and the claim weakened itself to "the largest classified category" — which
+  is the guard working, and it prices the next piece of work: **the rule table is now the
+  largest thing standing between the reader and the junior finding.**
 
 ## Open questions
 
