@@ -1,5 +1,13 @@
 -- How the market splits between remote, hybrid and office.
 --
+-- LIVE OFFERS ONLY. The page calls itself a snapshot and the KPI reads "of the live
+-- market", so the population is what the source lists on the observed date, not everything
+-- ever collected. Without the join the analysed set becomes an archive that only grows:
+-- two days in, 309 of 6839 analysed offers were already off the market, and at a few
+-- hundred departures a day that share climbs indefinitely. Offers collected before the
+-- frame existed have no row here and are excluded for the same reason — nothing records
+-- whether they were still listed.
+--
 -- Counted per VACANCY, not per advert. One employer publishes a single role once per city —
 -- 18 adverts for the same Cloud Data Engineer, same technologies, same salary — so counting
 -- adverts lets posting volume stand in for demand. Measured when this changed: 4354 adverts
@@ -15,5 +23,7 @@ SELECT
     COUNT(DISTINCT COALESCE(o.vacancy_id, w.offer_id)) AS offers
 FROM offer_work_modes w
 LEFT JOIN offers o ON o.offer_id = w.offer_id
+JOIN sitemap_offers f ON f.offer_id = w.offer_id
+  AND f.last_seen = (SELECT MAX(last_seen) FROM sitemap_offers)
 GROUP BY w.work_mode
 ORDER BY offers DESC, w.work_mode

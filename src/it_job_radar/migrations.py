@@ -266,6 +266,66 @@ def _v10_vacancy_key(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS ix_offers_vacancy ON offers(vacancy_key)")
 
 
+def _v11_coverage_counts_live_offers(conn: sqlite3.Connection) -> None:
+    """Recompute coverage over the population it claims to describe, at the resolution the
+    data actually supports.
+
+    The numerator counted every offer ever fetched while the denominator counted what was
+    listed that day, so the share was a ratio of two different sets. It grew as offers left
+    the frame and reached 6593/6530 — 101% coverage — on the run that prompted this.
+
+    The frame records `first_seen`, `last_seen` and `fetch_date`, so "held and still listed
+    on day D" is recoverable. What is *not* recoverable is which run within a day held what:
+    `fetch_date` is a date, and 2026-08-13 had seven runs. Reconstructing per run would have
+    dated the whole day's collection to its first observation — the page would have claimed
+    100% coverage at breakfast.
+
+    So each day keeps one point, on its last run, and the earlier same-day points are
+    deleted rather than invented. A series with fewer honest points is worth more than one
+    with a shape nobody measured. `coverage_over_time.sql` already treats the series as
+    ordinal, so it draws what remains without change.
+
+    The one assumption left is that an offer present on its first and last day was present
+    in between; `sitemap_offers.gaps` counts the exceptions and they are rare.
+    """
+    last_of_day = {
+        row[1]: row[0]
+        for row in conn.execute(
+            "SELECT snapshot_id, observed_date FROM snapshots ORDER BY snapshot_id"
+        )
+        if row[1]
+    }
+    for observed_date, snapshot_id in last_of_day.items():
+        fetched = conn.execute(
+            "SELECT COUNT(*) FROM sitemap_offers "
+            "WHERE fetch_date IS NOT NULL AND fetch_date <= ? "
+            "  AND first_seen <= ? AND last_seen >= ?",
+            (observed_date, observed_date, observed_date),
+        ).fetchone()[0]
+        live = conn.execute(
+            "SELECT COUNT(*) FROM sitemap_offers WHERE first_seen <= ? AND last_seen >= ?",
+            (observed_date, observed_date),
+        ).fetchone()[0]
+        if not live:
+            continue
+        for metric, value in (
+            ("coverage_fetched", float(fetched)),
+            ("coverage_share", fetched / live),
+            ("frame_live", float(live)),
+        ):
+            conn.execute(
+                "UPDATE snapshot_stats SET value = ? WHERE snapshot_id = ? AND metric = ?",
+                (value, snapshot_id, metric),
+            )
+        conn.execute(
+            "DELETE FROM snapshot_stats "
+            "WHERE metric IN ('coverage_fetched', 'coverage_share') "
+            "  AND snapshot_id <> ? "
+            "  AND snapshot_id IN (SELECT snapshot_id FROM snapshots WHERE observed_date = ?)",
+            (snapshot_id, observed_date),
+        )
+
+
 MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (1, "baseline schema", _v1_baseline),
     (2, "population frame", _v2_population_frame),
@@ -277,6 +337,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (8, "withhold impossible monthly equivalents", _v8_withhold_impossible_monthly),
     (9, "withhold monthly equivalents below the floor", _v9_withhold_monthly_below_the_floor),
     (10, "vacancy key", _v10_vacancy_key),
+    (11, "coverage counts live offers", _v11_coverage_counts_live_offers),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

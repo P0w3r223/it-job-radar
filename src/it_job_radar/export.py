@@ -159,7 +159,13 @@ def build_manifest(
         "quality": {name: round(m.value, 4) for name, m in metrics.items()},
         "redaction": {
             "columns": list(config.REDACTED_COLUMNS),
-            "offer_id": "salted sha256, truncated — stable across snapshots, not reversible",
+            "offer_id": (
+                "salted sha256, truncated, stable across snapshots. Pseudonymised, not "
+                "anonymised: the salt is in the public repository and the id space is "
+                "enumerable from the source's sitemap, so this breaks casual joins "
+                "rather than resisting a determined reader. vacancy_id hashes title and "
+                "company, which are themselves withheld — the same caveat applies."
+            ),
             "note": (
                 "Derived analytical data. It answers market questions and deliberately "
                 "cannot answer listing questions (who is hiring, where to apply)."

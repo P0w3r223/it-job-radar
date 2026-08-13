@@ -32,8 +32,24 @@ technologies with their required flag, contract kind, currency, time unit, month
 salary bounds, role family, `first_seen` / `last_seen`, and snapshot metadata.
 
 Excluded from the published files: `title`, `company`, `offer_url`, and any free text.
-`offer_id` is replaced by a salted hash, stable across snapshots (so longitudinal joins
-still work) but not resolvable back to a listing.
+`offer_id` is replaced by a salted hash, stable across snapshots so longitudinal joins still
+work.
+
+**Amended 2026-08-13 — the hash is pseudonymisation, not anonymisation.** This section used
+to say the hash was "not resolvable back to a listing", which an audit showed is false as
+written: the salt is committed to this repository, `offer_id` is the GUID in the offer URL,
+and the source publishes every live GUID in one sitemap request. Re-linking the published
+rows to their listings therefore costs one request and a few thousand hashes. `vacancy_id`
+is sharper still, because it hashes exactly the two fields — title and company — that
+redaction exists to withhold, and the sitemap's URL slugs carry the title.
+
+The property the artifact actually has is the one the code always claimed: casual joins back
+to the source are broken, and the artifact is useless as a job-board substitute. A secret
+HMAC key would make the stronger claim true, at the cost of an artifact nobody could
+reproduce from a clone — the reproducibility this project treats as a feature. Given that
+the underlying listings are public and no personal data is published, the claim was
+corrected rather than the mechanism. A published artifact asserting a property it does not
+have is the defect; the mechanism was never the problem.
 
 The salt lives in the repository, not in a secret store: the goal is to remove the
 artifact's usefulness as a job-board substitute and to break casual joins back to the

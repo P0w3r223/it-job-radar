@@ -1,5 +1,13 @@
 -- Individual disclosed salaries, filtered to one currency and one contract kind.
 --
+-- LIVE OFFERS ONLY. The page calls itself a snapshot and the KPI reads "of the live
+-- market", so the population is what the source lists on the observed date, not everything
+-- ever collected. Without the join the analysed set becomes an archive that only grows:
+-- two days in, 309 of 6839 analysed offers were already off the market, and at a few
+-- hundred departures a day that share climbs indefinitely. Offers collected before the
+-- frame existed have no row here and are excluded for the same reason — nothing records
+-- whether they were still listed.
+--
 -- Rows, not medians. The filter is the part that must be defined once; the aggregation is
 -- a median either way, and returning rows lets the caller attach a confidence interval and
 -- an honest `n` instead of publishing a bare number.
@@ -25,6 +33,8 @@ SELECT DISTINCT
 FROM offer_salaries sal
 JOIN offer_seniority s ON s.offer_id = sal.offer_id
 LEFT JOIN offers o     ON o.offer_id = sal.offer_id
+JOIN sitemap_offers f ON f.offer_id = sal.offer_id
+  AND f.last_seen = (SELECT MAX(last_seen) FROM sitemap_offers)
 WHERE sal.currency = $currency
   AND sal.kind = $kind
   AND sal.monthly_from IS NOT NULL
