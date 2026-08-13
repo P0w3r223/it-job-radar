@@ -138,6 +138,22 @@ def test_a_snapshot_the_rule_table_cannot_place_says_so(tmp_path):
     assert headline["n"] == 2
 
 
+def test_a_withheld_salary_is_not_reported_as_an_undisclosed_one(site):
+    """The refusal reached the manifest but stopped there, so the page said the opposite.
+
+    A figure we withdrew as a unit error is not a salary the employer declined to publish,
+    and a reader looking at the disclosure percentage alone cannot tell the two apart.
+    """
+    assert build._disclosure_note(0) == "the rest publish no figure at all"
+    assert "withheld" in build._disclosure_note(13)
+
+    _, dataset = site
+    page = build.gather(dataset)
+    labels = [kpi.note for kpi in page["kpis"]]
+    assert any("no figure at all" in note for note in labels)  # nothing withheld in this fixture
+    assert "salary_monthly_withheld" in page["manifest"]["quality"]
+
+
 def test_every_chart_states_its_sample_size(site):
     _, dataset = site
     page = build.gather(dataset)

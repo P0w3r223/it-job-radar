@@ -115,6 +115,10 @@
     <tr><th>Offers whose attributes we hold</th><td class="num">{{ manifest.coverage.attributes_known }}</td></tr>
     <tr><th>Coverage</th><td class="num">{{ '%.1f%%' | format(manifest.coverage.share * 100) }}</td></tr>
     <tr><th>Offers disclosing a salary</th><td class="num">{{ '%.0f%%' | format(manifest.quality.salary_disclosure_rate * 100) }}</td></tr>
+    <tr>
+      <th>Salary figures we withheld <span class="hint">published in a unit the amount contradicts</span></th>
+      <td class="num">{{ manifest.quality.salary_monthly_withheld | int }}</td>
+    </tr>
     <tr><th>Snapshot age</th><td class="num">{{ manifest.quality.freshness_days | int }} days</td></tr>
   </tbody>
 </table>
