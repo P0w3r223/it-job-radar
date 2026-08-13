@@ -266,14 +266,39 @@ def reconcile_fetch_state(conn: sqlite3.Connection) -> int:
 
 
 def coverage(conn: sqlite3.Connection, observed_date: str) -> tuple[int, int]:
-    """``(offers whose attributes we hold, offers currently listed)`` — coverage of the base."""
+    """``(live offers whose attributes we hold, offers currently listed)``.
+
+    Both sides are counted over the *same* population, which they were not: the numerator
+    used to count everything ever fetched while the denominator counted what is listed
+    today. The share was therefore a ratio of two different sets, and it grew as offers
+    left the frame — on 2026-08-13 it reached 6593/6530, a coverage of 101%. Under daily
+    operation the numerator gains every departing offer we already hold, so the figure
+    would have kept climbing away from anything it claims to measure.
+    """
     fetched = conn.execute(
-        "SELECT COUNT(*) FROM sitemap_offers WHERE fetch_state = ?", (config.FETCH_DONE,)
+        "SELECT COUNT(*) FROM sitemap_offers WHERE fetch_state = ? AND last_seen = ?",
+        (config.FETCH_DONE, observed_date),
     ).fetchone()[0]
     live = conn.execute(
         "SELECT COUNT(*) FROM sitemap_offers WHERE last_seen = ?", (observed_date,)
     ).fetchone()[0]
     return int(fetched), int(live)
+
+
+def fetch_pages_on(conn: sqlite3.Connection, observed_date: str) -> int:
+    """Offer pages already requested on ``observed_date``, across every run of that day.
+
+    The per-run budget bounds an invocation; this is what bounds a day. Without it six
+    runs at the ceiling fetched 6037 pages against a 6530-offer base on 2026-08-13 — the
+    whole base in a day, which is what `MAX_FETCH_BUDGET` is documented to prevent.
+    """
+    total = conn.execute(
+        "SELECT COALESCE(SUM(st.value), 0) FROM snapshot_stats st "
+        "JOIN snapshots s ON s.snapshot_id = st.snapshot_id "
+        "WHERE s.observed_date = ? AND st.metric = 'fetch_attempted'",
+        (observed_date,),
+    ).fetchone()[0]
+    return int(total)
 
 
 def mark_fetched(

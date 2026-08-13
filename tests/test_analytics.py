@@ -45,6 +45,10 @@ def dataset(tmp_path):
         _offer("a4", "junior", ["sql"], None, work_mode="hybrid", family="support"),
     ]
     db.write_offers(conn, offers, "2026-08-11")
+    # The frame is what makes an offer live, and every published query filters on it
+    # (ADR 0004). A fixture without one models a state the pipeline never produces and
+    # would have every query answer with nothing.
+    db.record_frame(conn, [(o["offer_id"], o["offer_url"]) for o in offers], "2026-08-11")
     out = tmp_path / "dataset"
     export.write_dataset(conn, out)
     connection = engine.connect(out)
@@ -222,3 +226,34 @@ def test_a_large_tight_stratum_is_published_clean():
         "monthly_to": [26000 + (i % 5) * 100 for i in range(200)],
     })
     assert not bool(stats.summarise_medians(tight, "seniority")["suppressed"].iloc[0])
+
+
+def test_a_delisted_offer_leaves_the_published_figures(tmp_path):
+    """ADR 0004: the page is a snapshot of the market, not an archive of what we collected.
+
+    Without the frame join the analysed set only ever grows — two days in, 309 of 6839
+    analysed offers were already off the market, and the coverage KPI reached 101%.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    offers = [
+        _offer("still", "senior", ["python"], 20000),
+        _offer("gone", "senior", ["rust"], 21000),
+    ]
+    db.write_offers(conn, offers, "2026-08-12")
+    db.record_frame(conn, [("still", "u1"), ("gone", "u2")], "2026-08-12")
+    db.record_frame(conn, [("still", "u1")], "2026-08-13")  # 'gone' is no longer listed
+    db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T10:00:00")
+    out = tmp_path / "dataset"
+    export.write_dataset(conn, out)
+
+    connection = engine.connect(out)
+    try:
+        technologies = set(engine.run("top_technologies", connection=connection)["technology"])
+        salaries = engine.run("salary_rows", connection=connection, kind="b2b")
+    finally:
+        connection.close()
+    conn.close()
+
+    assert "python" in technologies
+    assert "rust" not in technologies  # the delisted offer stops counting
+    assert len(salaries) == 1
