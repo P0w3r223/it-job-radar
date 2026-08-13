@@ -20,11 +20,10 @@ src/it_job_radar/
   sampling.py              # fetch-queue construction (pure): inflow -> backlog -> audit
   normalize.py             # tech aliases, role families, seniority (PL), currency, B2B/UoP
   quality.py               # quality metrics + data contract (violating-predicate rules)
-  analytics/stats.py       # bootstrap intervals, count AND interval-width suppression
   export.py                # redacted Parquet dataset (ADR 0002)
   analytics/queries/*.sql  # ONE definition per published metric — edit metrics here
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
-  analytics/stats.py       # bootstrap intervals, thin-stratum suppression, ordering
+  analytics/stats.py       # bootstrap intervals; suppression by count AND interval width
   analytics/history.py     # dated per-dimension metrics (7.1) — same queries, stored per run
   site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
   pipeline.py              # CLI: observe | collect | quality | export | site | verify
