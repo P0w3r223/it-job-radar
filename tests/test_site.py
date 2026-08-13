@@ -73,6 +73,51 @@ def test_headline_changes_when_the_data_does(tmp_path):
     conn.close()
 
 
+def _junior_page(tmp_path, families):
+    """Publish a snapshot of junior offers with the given role families, then gather it."""
+    conn = db.connect(tmp_path / "t.db")
+    offers = [
+        _offer(f"j{i}", "junior", None, family=family, title=f"Rola {i}")
+        for i, family in enumerate(families)
+    ]
+    db.write_offers(conn, offers, "2026-08-11")
+    db.record_frame(conn, [(o["offer_id"], "u") for o in offers], "2026-08-11")
+    db.start_snapshot(conn, "collect", "2026-08-11", "2026-08-11T10:00:00")
+    dataset = tmp_path / "data"
+    export.publish(conn, dataset)
+    try:
+        return build.gather(dataset)["headline"]
+    finally:
+        conn.close()
+
+
+def test_the_unmatched_residue_never_carries_the_headline(tmp_path):
+    """"other" is a gap in our rule table, not a kind of work the market offers.
+
+    It ties with support here and sorts first alphabetically, which is exactly how the
+    published page once led with "The largest junior category is other".
+    """
+    headline = _junior_page(tmp_path, ["other", "other", "support", "support"])
+    assert "other" not in headline["claim"]
+    assert "not development jobs" in headline["claim"]
+    assert headline["n"] == 4  # the residue stays in the denominator
+    assert "2 of 4" in headline["detail"]
+    assert "the largest single category" in headline["detail"]
+
+
+def test_the_claim_weakens_when_the_residue_is_the_larger_bucket(tmp_path):
+    headline = _junior_page(tmp_path, ["other"] * 3 + ["support"])
+    assert "not development jobs" in headline["claim"]
+    assert "the largest classified category" in headline["detail"]
+
+
+def test_a_snapshot_the_rule_table_cannot_place_says_so(tmp_path):
+    headline = _junior_page(tmp_path, [None, "other"])
+    assert "No junior offer" in headline["claim"]
+    assert "other" not in headline["claim"]
+    assert headline["n"] == 2
+
+
 def test_every_chart_states_its_sample_size(site):
     _, dataset = site
     page = build.gather(dataset)
