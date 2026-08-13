@@ -1,6 +1,6 @@
 """Tests for the SQLite persistence layer (temp database)."""
 
-from it_job_radar import db
+from it_job_radar import config, db
 from it_job_radar.normalize import Technology
 
 
@@ -121,4 +121,38 @@ def test_two_runs_on_one_day_keep_separate_metrics(tmp_path):
 
     stats = db.read_table(conn, "snapshot_stats").sort_values("value")
     assert list(stats["value"]) == [250.0, 314.0]
+    conn.close()
+
+
+def test_coverage_counts_only_offers_still_listed(tmp_path):
+    """The numerator and the denominator have to describe the same population.
+
+    They did not: everything ever fetched over everything listed today. The share therefore
+    grew as offers left the frame and reached 6593/6530 — 101% coverage — on a real run.
+    """
+    conn = db.connect(tmp_path / "t.db")
+    db.record_frame(conn, [("live1", "u1"), ("live2", "u2"), ("gone1", "u3")], "2026-08-12")
+    db.record_frame(conn, [("live1", "u1"), ("live2", "u2")], "2026-08-13")
+    db.mark_fetched(
+        conn,
+        [("live1", config.FETCH_DONE), ("gone1", config.FETCH_DONE)],
+        "2026-08-12",
+    )
+
+    fetched, live = db.coverage(conn, "2026-08-13")
+    assert (fetched, live) == (1, 2)  # not (2, 2): the delisted offer is not coverage
+    conn.close()
+
+
+def test_the_days_pages_are_summed_across_runs(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    first = db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T10:00:00")
+    second = db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T12:00:00")
+    other_day = db.start_snapshot(conn, "collect", "2026-08-12", "2026-08-12T10:00:00")
+    db.write_snapshot_stat(conn, first, "2026-08-13", "fetch_attempted", 1000)
+    db.write_snapshot_stat(conn, second, "2026-08-13", "fetch_attempted", 600)
+    db.write_snapshot_stat(conn, other_day, "2026-08-12", "fetch_attempted", 300)
+
+    assert db.fetch_pages_on(conn, "2026-08-13") == 1600
+    assert db.fetch_pages_on(conn, "2026-08-12") == 300
     conn.close()

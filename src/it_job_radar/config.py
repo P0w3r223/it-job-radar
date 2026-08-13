@@ -46,6 +46,12 @@ DEFAULT_FETCH_BUDGET = 300
 # Hard ceiling on one run's page fetches. This is the ethical guardrail, not a tuning
 # knob: exceeding it is an error, because the collector must never approach the whole base.
 MAX_FETCH_BUDGET = 1000
+# And the ceiling that actually holds the promise. A per-run limit resets every time it is
+# hit: on 2026-08-13 seven runs, each inside MAX_FETCH_BUDGET, fetched 6037 pages against a
+# 6530-offer base — the whole base in a day, which is the one thing the documentation says
+# this collector never does. The day's runs are summed before a queue is built, so the
+# limit cannot be walked past by running again.
+MAX_DAILY_FETCH = 2000
 # Share of the budget spent re-fetching known offers to check whether their attributes
 # really are immutable. Small on purpose: it measures an assumption, it is not a refresh.
 AUDIT_QUOTA_SHARE = 0.02

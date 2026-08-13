@@ -93,9 +93,13 @@ def _count_rows(spec: Count, connection, offer_count: int) -> list[tuple]:
 
 
 def _vacancy_count(connection) -> int:
-    """Distinct jobs in the published dataset — the denominator every share is taken of."""
+    """Distinct live jobs — the denominator every share is taken of.
+
+    Live, because the numerators are: a share of an archive against a market denominator
+    would shrink every published figure as offers left the frame.
+    """
     frame = connection.execute(
-        "SELECT COUNT(DISTINCT COALESCE(vacancy_id, offer_id)) FROM offers"
+        "SELECT COUNT(DISTINCT COALESCE(o.vacancy_id, o.offer_id)) FROM offers o JOIN sitemap_offers f ON f.offer_id = o.offer_id AND f.last_seen = (SELECT MAX(last_seen) FROM sitemap_offers)"
     ).fetchdf()
     return int(frame.iloc[0, 0])
 
