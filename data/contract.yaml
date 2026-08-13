@@ -49,11 +49,13 @@ tables:
         allowed_from: CONTRACT_KINDS
       currency:
         allowed_from: KNOWN_CURRENCIES
+      # The floor is not "not negative": an hourly rate filed as a monthly one lands at
+      # 14-180 PLN and passes any check that only forbids nonsense below zero.
       monthly_from:
-        min: 0
+        min_from: SALARY_SANITY_MIN
         max_from: SALARY_SANITY_MAX
       monthly_to:
-        min: 0
+        min_from: SALARY_SANITY_MIN
         max_from: SALARY_SANITY_MAX
     rules:
       - name: monthly range is ordered
