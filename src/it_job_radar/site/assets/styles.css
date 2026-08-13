@@ -79,6 +79,9 @@ h3 { font-size: 1rem; margin: 1.5rem 0 0.25rem; }
 p { margin: 0.5rem 0; }
 .lead { font-size: 1.1rem; color: var(--muted); max-width: 46rem; }
 .note { color: var(--muted); font-size: 0.9rem; }
+/* A qualifier that belongs to a table row's label rather than to a paragraph of its own:
+   a number the reader would otherwise have to guess the meaning of. */
+.hint { display: block; color: var(--muted); font-size: 0.85rem; font-weight: 400; }
 
 /* KPI row: the four numbers that frame everything below. */
 .kpis {
