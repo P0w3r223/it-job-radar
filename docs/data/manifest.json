@@ -1,37 +1,38 @@
 {
-  "generated_at": "2026-08-13T13:00:13",
-  "git_sha": "29796ea",
-  "schema_version": 9,
+  "generated_at": "2026-08-13T13:45:51",
+  "git_sha": "becb2fc",
+  "schema_version": 10,
   "snapshot": {
-    "id": 16,
+    "id": 19,
     "kind": "observe",
     "observed_date": "2026-08-13",
-    "started_at": "2026-08-13T13:00:03"
+    "started_at": "2026-08-13T13:45:48"
   },
   "coverage": {
     "offers_listed": 6530,
-    "attributes_known": 3129,
-    "share": 0.4792
+    "attributes_known": 4108,
+    "share": 0.6291
   },
   "rows": {
-    "offers": 3375,
-    "offer_seniority": 4060,
-    "offer_work_modes": 5395,
-    "offer_locations": 3374,
-    "offer_technologies": 17397,
-    "offer_salaries": 4612,
-    "snapshots": 16,
-    "snapshot_stats": 208,
-    "snapshot_dimension_metrics": 742,
+    "offers": 4354,
+    "offer_seniority": 5262,
+    "offer_work_modes": 6940,
+    "offer_locations": 4353,
+    "offer_technologies": 22300,
+    "offer_salaries": 5958,
+    "snapshots": 19,
+    "snapshot_stats": 258,
+    "snapshot_dimension_metrics": 1072,
     "sitemap_offers": 7127
   },
-  "bytes": 634765,
+  "bytes": 825071,
   "quality": {
-    "salary_disclosure_rate": 0.2791,
-    "stored_alias_coverage_rate": 0.7336,
-    "salary_kind_unknown_share": 0.7684,
-    "salary_monthly_withheld": 13.0,
-    "role_family_other_share": 0.069,
+    "salary_disclosure_rate": 0.28,
+    "stored_alias_coverage_rate": 0.7259,
+    "salary_kind_unknown_share": 0.7682,
+    "salary_monthly_withheld": 15.0,
+    "duplicate_posting_share": 0.3443,
+    "role_family_other_share": 0.0735,
     "role_family_unclassified": 0.0,
     "strata_below_min_n": 1,
     "freshness_days": 0
