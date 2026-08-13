@@ -121,6 +121,38 @@ def test_duplicate_technology_rows_are_collapsed_once_and_then_forbidden(tmp_pat
     conn.close()
 
 
+def test_an_impossible_monthly_equivalent_is_withdrawn_from_stored_rows(tmp_path):
+    """Salaries are written once per offer, so only a migration can repair what is stored.
+
+    The withdrawal is limited to the derived columns: what the offer published about itself
+    survives, which is also what lets a reader see why the equivalent is missing.
+    """
+    path = tmp_path / "legacy.db"
+    legacy = _legacy_database(path)
+    legacy.executemany(
+        "INSERT INTO offer_salaries "
+        "(offer_id, kind, currency, salary_from, salary_to, time_unit, monthly_from, monthly_to) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            ("a1", "b2b", "PLN", 14500, 15500, "godzinowo", 2_320_000, 2_480_000),
+            ("a1", "b2b", "PLN", 300, 400, "godzinowo", 48_000, 64_000),
+        ],
+    )
+    legacy.commit()
+    legacy.close()
+
+    conn = db.connect(path)
+    rows = conn.execute(
+        "SELECT salary_from, time_unit, monthly_from, monthly_to FROM offer_salaries "
+        "ORDER BY salary_from"
+    ).fetchall()
+    assert rows == [
+        (300.0, "godzinowo", 48_000.0, 64_000.0),
+        (14500.0, "godzinowo", None, None),
+    ]
+    conn.close()
+
+
 def test_stored_technologies_gain_a_provenance_seed(tmp_path):
     """Rows written before provenance existed must still be re-resolvable.
 
