@@ -483,8 +483,8 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
 (PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
 repo. PR #7 is merged and the live page serves it. The second run of the day is on
-`chore/collect-2026-08-13-second` (PR #8). 175 tests green; coverage **47.9%**
-(3129 of 6530), six dated points per metric. What remains is still waiting on
+`chore/collect-2026-08-13-second` (PR #8). 183 tests green; coverage **62.9%**
+(4108 of 6530 adverts, 2855 vacancies). What remains is still waiting on
 **days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
 
 ### Next session, in order
@@ -538,8 +538,31 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
 - **`.gitattributes` pins `docs/index.html` to LF.** Without it a Windows checkout converts
   the committed page to CRLF and every local rebuild reports a stale page — a failure with
   no commit behind it, which cost a debugging detour once already.
-- **Coverage is 47.9%** (3129 of 6530 listed offers). The junior finding rests on 241
-  offers, and `head` (13) is the only stratum still below `MIN_STRATUM_N`.
+- **Coverage is 62.9%** (4108 of 6530 listed adverts, **2855 distinct vacancies**). The
+  junior finding rests on 254 vacancies; `head` (18) is the only stratum still under
+  `MIN_STRATUM_N`.
+- **Demand is counted per vacancy, not per advert.** One employer publishes a single role
+  once per city — 18 adverts for one Cloud Data Engineer — so 34% of the sample repeats a
+  job. Counted per advert, posting volume stands in for demand: deduplicating moved azure
+  from third place in the technology ranking to seventh. `vacancy_key` (title + company,
+  re-derived every observation like `role_family`) is hashed into `vacancy_id` on export,
+  and every counting query groups on it. `city_vs_remote_rows` deliberately does not — a
+  role advertised in eighteen cities really is offered in eighteen cities.
+- **A figure is marked by measured precision, not only by count.** `MIN_STRATUM_N` asks how
+  many observations; `MAX_CI_WIDTH_SHARE` (0.25) asks what they bought. Counting alone was
+  publishing a junior B2B median whose bootstrap interval spanned 34% of itself while
+  marking a two-row stratum whose interval was narrow only because two points cannot
+  disagree. Both tests are kept, because each catches what the other misses.
+- **The dictionary refuses to load with a collision.** `microsoft 365` was a canonical name
+  *and* an alias of `microsoft office`, so `m365` and `ms office` landed in different
+  buckets depending on the advert's spelling — the `ReactJS`/`React.js` failure the
+  dictionary exists to prevent, committed by the dictionary. `load_tech_aliases` now raises
+  `AliasConflict`; at ~200 canonicals and a pass every few hundred offers, nothing else
+  would have caught the next one.
+- **A time unit we cannot convert stops publication.** `time_unit` is free text, so an
+  unseen "dziennie" would be silently withheld and then described on the page as a unit
+  error — a different statement about the employer. `KNOWN_TIME_UNITS` and a contract rule
+  make it loud instead.
 - **A derived number we know is false is never published.** `normalize_salary` withholds a
   monthly equivalent beyond `SALARY_SANITY_MAX` — one offer filed 14 500 PLN as an hourly
   rate — while the reported amount and unit stay as the source wrote them. Migration v8
