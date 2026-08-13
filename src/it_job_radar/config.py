@@ -150,6 +150,12 @@ SENIORITY_ORDER = (
 # Role family: what kind of work the title describes. Rules live in ROLE_FAMILIES_PATH;
 # "other" is a legitimate outcome and is reported as a quality metric, never hidden.
 ROLE_FAMILY_OTHER = "other"
+# What the classifier could not place: "other" is a title the rule table saw and did not
+# match, "unclassified" is an offer it has not run on (the label role_family_distribution
+# substitutes for NULL — the two must stay spelled the same). Neither is a kind of work,
+# so neither can carry a claim about the market; both stay in every published count.
+ROLE_FAMILY_UNCLASSIFIED = "unclassified"
+ROLE_FAMILY_RESIDUE = (ROLE_FAMILY_OTHER, ROLE_FAMILY_UNCLASSIFIED)
 
 # Work mode normalization (theprotocol detailedWorkModes codes).
 WORK_MODE_MAP = {
