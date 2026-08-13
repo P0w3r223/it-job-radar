@@ -133,6 +133,23 @@ def snapshot_metrics(
         "SELECT COUNT(DISTINCT offer_id) FROM offer_salaries WHERE monthly_from IS NOT NULL",
     )
     unknown_kind = _scalar(conn, "SELECT COUNT(*) FROM offer_salaries WHERE kind IS NULL")
+    # An amount and a unit were published, and we still have no monthly equivalent: either
+    # the conversion was beyond anything an advert can mean (see migration v8) or the unit
+    # is one we do not convert. Counting it keeps the refusal in sight — a withheld figure
+    # that nobody reports is indistinguishable from a salary that was never disclosed.
+    withheld = _scalar(
+        conn,
+        "SELECT COUNT(*) FROM offer_salaries "
+        "WHERE salary_from IS NOT NULL AND time_unit IS NOT NULL AND monthly_from IS NULL",
+    )
+    withheld_units = ", ".join(
+        f"{row[0]}x{row[1]}"
+        for row in conn.execute(
+            "SELECT time_unit, COUNT(*) FROM offer_salaries "
+            "WHERE salary_from IS NOT NULL AND time_unit IS NOT NULL AND monthly_from IS NULL "
+            "GROUP BY time_unit ORDER BY COUNT(*) DESC"
+        )
+    )
     other_roles = _scalar(
         conn, "SELECT COUNT(*) FROM offers WHERE role_family = ?", (config.ROLE_FAMILY_OTHER,)
     )
@@ -161,6 +178,7 @@ def snapshot_metrics(
         # different measurements into one line on a future chart.
         "stored_alias_coverage_rate": Metric(coverage.rate, detail=unmatched or None),
         "salary_kind_unknown_share": Metric(unknown_kind / salary_rows if salary_rows else 0.0),
+        "salary_monthly_withheld": Metric(withheld, detail=withheld_units or None),
         "role_family_other_share": Metric(other_roles / offers if offers else 0.0),
         "role_family_unclassified": Metric(unclassified),
         "strata_below_min_n": Metric(
