@@ -135,6 +135,7 @@ def test_an_impossible_monthly_equivalent_is_withdrawn_from_stored_rows(tmp_path
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
             ("a1", "b2b", "PLN", 14500, 15500, "godzinowo", 2_320_000, 2_480_000),
+            ("a1", "b2b", "PLN", 140, 180, "miesięcznie", 140, 180),
             ("a1", "b2b", "PLN", 300, 400, "godzinowo", 48_000, 64_000),
         ],
     )
@@ -147,8 +148,9 @@ def test_an_impossible_monthly_equivalent_is_withdrawn_from_stored_rows(tmp_path
         "ORDER BY salary_from"
     ).fetchall()
     assert rows == [
+        (140.0, "miesięcznie", None, None),   # an hourly rate filed as monthly (v9)
         (300.0, "godzinowo", 48_000.0, 64_000.0),
-        (14500.0, "godzinowo", None, None),
+        (14500.0, "godzinowo", None, None),   # a monthly figure filed as hourly (v8)
     ]
     conn.close()
 
