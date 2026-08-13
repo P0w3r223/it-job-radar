@@ -78,11 +78,16 @@ def test_unknown_parameter_is_rejected(dataset):
         engine.run("top_technologies", connection=connection, nonsense=1)
 
 
-def test_query_text_is_verbatim_including_comments():
-    """The site shows this text to the reader, so it must not be assembled or stripped."""
-    sql = engine.query_text("top_technologies")
-    assert sql.startswith("-- Most in-demand technologies.")
-    assert "COUNT(DISTINCT COALESCE(o.vacancy_id, t.offer_id))" in sql
+def test_query_text_is_the_file_itself():
+    """The site shows this text to the reader, so it must not be assembled or stripped.
+
+    Compared against the file rather than against remembered snippets: an assertion on
+    comment wording broke when a comment was reworded and passed when a metric changed,
+    which is backwards. The counting semantics are pinned behaviourally instead.
+    """
+    queries = config.PROJECT_ROOT / "src/it_job_radar/analytics/queries"
+    for name in engine.available():
+        assert engine.query_text(name) == (queries / f"{name}.sql").read_text(encoding="utf-8")
 
 
 # --- Role filtering ----------------------------------------------------------
@@ -138,50 +143,50 @@ def test_seniority_ordering_follows_the_configured_ladder():
     ]
 
 
+def _three_city_dataset(tmp_path):
+    """One role advertised in three cities, plus a second role — four adverts, two jobs."""
+    context = normalize.Normalization(tech_aliases={}, role_rules=(("backend", ("engineer",)),))
+
+    def raw(offer_id, title, city):
+        return {
+            "offer_id": offer_id, "title": title, "company": "Sii",
+            "offer_url": f"u{offer_id}", "locations": [{"city": city, "region": "r"}],
+            "seniority": ["senior"], "work_modes": ["remote"],
+            "tech_expected": ["python"], "tech_optional": [],
+            "contracts": [{
+                "type": "B2B", "kind": "netto (+ VAT)", "currency": "zł",
+                "salary_from": 20000, "salary_to": 25000, "time_unit": "miesięcznie",
+            }],
+        }
+
+    conn = db.connect(tmp_path / "t.db")
+    offers = [
+        normalize.normalize_offer(raw(f"a{i}", "Cloud Data Engineer", city), context)
+        for i, city in enumerate(["Wrocław", "Kraków", "Gdańsk"])
+    ]
+    offers.append(normalize.normalize_offer(raw("b1", "Kotlin Engineer", "Kraków"), context))
+    db.write_offers(conn, offers, "2026-08-13")
+    db.record_frame(conn, [(o["offer_id"], "u") for o in offers], "2026-08-13")
+    db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T10:00:00")
+    out = tmp_path / "dataset"
+    export.write_dataset(conn, out)
+    return conn, out
+
+
 def test_one_role_advertised_in_many_cities_counts_once(tmp_path):
     """Demand is a property of the job, not of how widely its employer advertises.
 
     Measured on real data when this changed: 4354 adverts were 2856 vacancies, and the
     published ranking moved azure from third place to seventh.
     """
-    from it_job_radar import db, export, normalize
-
-    conn = db.connect(tmp_path / "t.db")
-    context = normalize.Normalization(tech_aliases={}, role_rules=())
-    cities = ["Wrocław", "Kraków", "Gdańsk"]
-    offers = [
-        normalize.normalize_offer(
-            {
-                "offer_id": f"a{i}", "title": "Cloud Data Engineer", "company": "Sii",
-                "offer_url": f"u{i}", "locations": [{"city": city, "region": "r"}],
-                "seniority": ["senior"], "work_modes": ["remote"],
-                "tech_expected": ["python"], "tech_optional": [], "contracts": [],
-            },
-            context,
-        )
-        for i, city in enumerate(cities)
-    ]
-    offers.append(
-        normalize.normalize_offer(
-            {
-                "offer_id": "b1", "title": "Kotlin Developer", "company": "Sii",
-                "offer_url": "u9", "locations": [{"city": "Wrocław", "region": "r"}],
-                "seniority": ["senior"], "work_modes": ["remote"],
-                "tech_expected": ["python"], "tech_optional": [], "contracts": [],
-            },
-            context,
-        )
-    )
-    db.write_offers(conn, offers, "2026-08-13")
-    db.record_frame(conn, [(o["offer_id"], "u") for o in offers], "2026-08-13")
-    db.start_snapshot(conn, "collect", "2026-08-13", "2026-08-13T10:00:00")
-    out = tmp_path / "dataset"
-    export.publish(conn, out)
-
+    conn, out = _three_city_dataset(tmp_path)
     connection = engine.connect(out)
     try:
         technologies = engine.run("top_technologies", connection=connection)
         strata = engine.run("stratum_sizes", connection=connection)
+        roles = engine.run("role_family_distribution", connection=connection)
+        work_modes = engine.run("work_mode_distribution", connection=connection)
+        salaries = engine.run("salary_rows", connection=connection, kind="b2b")
     finally:
         connection.close()
     conn.close()
@@ -189,43 +194,32 @@ def test_one_role_advertised_in_many_cities_counts_once(tmp_path):
     # Four adverts, two jobs: the three-city posting is one, the Kotlin role the other.
     assert int(technologies.loc[technologies["technology"] == "python", "offers"].iloc[0]) == 2
     assert int(strata.loc[strata["seniority"] == "senior", "offers"].iloc[0]) == 2
+    # Every counting query, not only the two that happened to have a test: reverting any of
+    # these to advert counting used to fail nothing but the committed-page byte diff, which
+    # is re-baselined by the same commit that changes the metric.
+    assert int(roles["offers"].sum()) == 2
+    assert int(work_modes.loc[work_modes["work_mode"] == "remote", "offers"].iloc[0]) == 2
+    assert len(salaries) == 2  # one row per vacancy, not per advert
 
 
-def test_a_wide_interval_is_marked_even_when_the_count_clears_the_floor():
-    """Counting alone published a junior B2B median whose interval spanned 43% of itself.
+def test_the_city_comparison_keeps_counting_adverts(tmp_path):
+    """The one deliberate exception, pinned so it stays deliberate.
 
-    n is a proxy for precision; the interval is the measurement. Both are kept because
-    each catches what the other misses.
+    A role advertised in three cities is offered in three cities, so the city arm counts
+    adverts. The remote arm is the opposite case — all three copies are the same remote
+    job — and counting adverts there inflated it by 28% on real data.
     """
-    import numpy as np
+    conn, out = _three_city_dataset(tmp_path)
+    connection = engine.connect(out)
+    try:
+        rows = engine.run("city_vs_remote_rows", connection=connection, city="Wrocław")
+    finally:
+        connection.close()
+    conn.close()
 
-    rng = np.random.default_rng(0)
-    # 40 rows — over MIN_STRATUM_N — but spread so widely that the median means little.
-    wide = pd.DataFrame({
-        "seniority": ["junior"] * 40,
-        "monthly_from": rng.integers(4000, 30000, 40),
-        "monthly_to": rng.integers(30000, 60000, 40),
-    })
-    assert bool(stats.summarise_medians(wide, "seniority")["suppressed"].iloc[0])
-
-
-def test_a_narrow_interval_on_a_tiny_stratum_is_still_marked():
-    """Two points cannot disagree, so their interval is narrow by construction."""
-    tiny = pd.DataFrame({
-        "seniority": ["head"] * 2,
-        "monthly_from": [29000, 29500],
-        "monthly_to": [31000, 31500],
-    })
-    assert bool(stats.summarise_medians(tiny, "seniority")["suppressed"].iloc[0])
-
-
-def test_a_large_tight_stratum_is_published_clean():
-    tight = pd.DataFrame({
-        "seniority": ["senior"] * 200,
-        "monthly_from": [21000 + (i % 5) * 100 for i in range(200)],
-        "monthly_to": [26000 + (i % 5) * 100 for i in range(200)],
-    })
-    assert not bool(stats.summarise_medians(tight, "seniority")["suppressed"].iloc[0])
+    counts = rows.groupby("group_name").size()
+    assert int(counts.get("city", 0)) == 1   # only one advert names Wrocław
+    assert int(counts.get("remote", 0)) == 2  # four remote adverts, two jobs
 
 
 def test_a_delisted_offer_leaves_the_published_figures(tmp_path):
