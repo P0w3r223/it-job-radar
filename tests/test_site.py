@@ -111,6 +111,26 @@ def test_the_claim_weakens_when_the_residue_is_the_larger_bucket(tmp_path):
     assert "the largest classified category" in headline["detail"]
 
 
+def test_the_majority_claim_is_checked_as_a_majority(tmp_path):
+    """Ranking first is not the same proposition as "most", and the h1 says "most".
+
+    Role families are fine-grained, so development can pass half the segment while every
+    single development family stays below support. Here support leads with 4 of 11 and the
+    development families sum to 6 — the neutral wording has to take over.
+    """
+    families = ["support"] * 4 + ["backend"] * 2 + ["frontend"] * 2 + ["mobile"] + ["ml"] + ["qa"]
+    headline = _junior_page(tmp_path, families)
+    assert "not development jobs" not in headline["claim"]
+    assert "support" in headline["claim"]
+
+
+def test_the_majority_claim_survives_a_development_minority(tmp_path):
+    families = ["support"] * 4 + ["backend"] * 2 + ["qa"] * 3
+    headline = _junior_page(tmp_path, families)
+    assert "not development jobs" in headline["claim"]
+    assert "Development accounts for 2" in headline["detail"]
+
+
 def test_a_snapshot_the_rule_table_cannot_place_says_so(tmp_path):
     headline = _junior_page(tmp_path, [None, "other"])
     assert "No junior offer" in headline["claim"]

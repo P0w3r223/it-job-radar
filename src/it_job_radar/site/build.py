@@ -125,7 +125,11 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
     """
     total = int(junior_roles["offers"].sum())
     if not total:
-        return {"claim": "Not enough junior offers in this snapshot to say.", "n": 0}
+        return {
+            "claim": "Not enough junior offers in this snapshot to say.",
+            "detail": "No offer in this snapshot is open to juniors.",
+            "n": 0,
+        }
     is_residue = junior_roles["role_family"].isin(config.ROLE_FAMILY_RESIDUE)
     classified = junior_roles[~is_residue]
     if classified.empty:
@@ -141,11 +145,22 @@ def _headline(junior_roles: pd.DataFrame) -> dict:
         if int(top["offers"]) >= residue_max
         else "the largest classified category"
     )
-    if top["role_family"] == "support":
+    # "Most … are not development jobs" is a statement about a majority, so it is checked as
+    # one. Ranking first among families would not establish it: the development families are
+    # fine-grained and could jointly pass half the segment while each stays below support.
+    development = int(
+        junior_roles.loc[
+            junior_roles["role_family"].isin(config.DEVELOPMENT_FAMILIES), "offers"
+        ].sum()
+    )
+    if top["role_family"] == "support" and development * 2 < total:
         claim = "Most junior IT offers in Poland are not development jobs"
+        # "and administration" was dropped when the rule table gave network and systems work
+        # its own family: support now means the desk and the lines behind it, and the claim
+        # has to mean what the family means.
         detail = (
             f"{int(top['offers'])} of {total} offers open to juniors are IT support and "
-            f"administration — {rank}, ahead of every engineering discipline."
+            f"service-desk work — {rank}. Development accounts for {development}."
         )
     else:
         claim = f"The largest junior category is {top['role_family']}"
