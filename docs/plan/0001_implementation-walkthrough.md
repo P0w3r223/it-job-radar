@@ -480,18 +480,20 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 ## Remaining work, in the order I would do it
 
-State at the end of the second 2026-08-12 session: **v2 and 7.1 are merged to `main`**
-(PR #3, PR #4), Pages publishes from the workflow, 6.5 awaits a merge in the index repo, and
-7.2 is on `feat/coverage-over-time` (PR #5, CI green). 156 tests green; coverage 10.3%
-(681 of 6603). What remains is waiting on **days, not code**: the dated series holds one
-point per metric, and the flow cohort has recorded no exits at all.
+State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
+(PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
+repo. The day's run is on `chore/collect-2026-08-13` (PR #7). 159 tests green; coverage
+**17.9%** (1171 of 6530), three dated points per metric. What remains is still waiting on
+**days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
 
 ### Next session, in order
 
 **1. `pipeline observe`, first thing.** Not ceremony: the flow cohort is the only one that
-can carry survival analysis, and it only grows by being observed. Two dates exist so far
-(2026-08-11, 2026-08-12); 7.3 wants roughly two weeks. A `collect --budget 300 --seed <date>`
-after it is optional but cheap, and every run tightens the junior finding further. Since
+can carry survival analysis, and it only grows by being observed. Three dates exist so far
+(2026-08-11, 2026-08-12, 2026-08-13); 7.3 wants roughly two weeks. A `collect` after it is
+optional but cheap, and every run tightens the junior finding further — **read the `new`
+count `observe` prints and set `--budget` above it**, or the inflow census silently becomes
+a sample of the offers that survived the queue (open question 2). Since
 7.1 landed, `export` after a run is no longer optional book-keeping — it is what records
 that day's point, and a day not exported is a hole in every series.
 
@@ -535,8 +537,13 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
 - **`.gitattributes` pins `docs/index.html` to LF.** Without it a Windows checkout converts
   the committed page to CRLF and every local rebuild reports a stale page — a failure with
   no commit behind it, which cost a debugging detour once already.
-- **Coverage is 10.3%** (681 of 6603 listed offers). The junior finding rests on 68 offers,
+- **Coverage is 17.9%** (1171 of 6530 listed offers). The junior finding rests on 85 offers,
   above `MIN_STRATUM_N`; more `collect` runs tighten it further.
+- **The residue cannot carry the headline.** `other` and `unclassified` are excluded from
+  the claim `_headline` derives, because leading with them publishes a gap in our own rule
+  table as a fact about the market — which is what happened on 2026-08-13, when `other`
+  tied `support` and won the alphabetical tie-break. They stay in the denominator, in the
+  chart and in `role_family_other_share`, which is where a rising residue belongs.
 
 ## Open questions
 
@@ -548,8 +555,14 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
    single 25-day survival observation. **First measurement, 2026-08-12:** frame
    differencing gives 210 new and 73 gone against 6603 listed — a daily hazard near 1.1%,
    well under what that fit implied, and an inflow the 300 budget covers in full
-   (`inflow_capture_rate = 1.0`). One interval is not a rate; confirm over ~5 days before
-   fixing `DEFAULT_FETCH_BUDGET`.
+   (`inflow_capture_rate = 1.0`). **Second measurement, 2026-08-13: 451 new and 524 gone
+   against 6530** — a hazard near 7.9% and an inflow that overruns the 300 budget by half.
+   The two intervals disagree by more than a factor of two, which is itself the finding:
+   the daily inflow is not a constant, so a fixed `DEFAULT_FETCH_BUDGET` will alternate
+   between wasting requests and truncating the census. That run was collected at 500 to
+   keep the census complete; the standing rule until this is settled is **size the budget
+   from the observed `new` count, not from the default**. Still confirm over ~5 days —
+   and the candidate resolution is now a budget derived per run rather than a new constant.
 3. ~~Vendored WASM bundle size in practice.~~ **Resolved 2026-08-12 by measuring it:**
    21.1 MB (pin 1.28.0) to 37.5 MB (1.32.0) raw, ~4–8 MB stored in git, against a 241 kB
    dataset. A pinned CDN was rejected for the same reason the Google Fonts link was, so the
