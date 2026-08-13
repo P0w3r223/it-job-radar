@@ -173,6 +173,35 @@ def observe(session=None) -> db.FrameDelta:
     return delta
 
 
+class DailyBudgetSpent(RuntimeError):
+    """Raised when the day's page allowance is already gone."""
+
+
+def _budget_left_today(conn, today: str, budget: int) -> int:
+    """Trim this run's budget to what the day has left, or refuse if the day is spent.
+
+    `MAX_FETCH_BUDGET` bounds one invocation, which is not what the project promises. On
+    2026-08-13 seven runs, each individually within the ceiling, fetched 6037 pages against
+    a 6530-offer base — the whole base in a day, which is precisely what the guardrail is
+    documented to prevent. A ceiling that resets every time it is hit is a tuning knob, not
+    a limit, so the accounting is per day and reads the runs already recorded.
+    """
+    spent = db.fetch_pages_on(conn, today)
+    remaining = config.MAX_DAILY_FETCH - spent
+    if remaining <= 0:
+        raise DailyBudgetSpent(
+            f"{spent} pages already fetched today, at the daily limit of "
+            f"{config.MAX_DAILY_FETCH}; the frame is still observed, offers are not"
+        )
+    if budget > remaining:
+        print(
+            f"[collect] budget trimmed {budget} -> {remaining}: "
+            f"{spent} of {config.MAX_DAILY_FETCH} pages already fetched today"
+        )
+        return remaining
+    return budget
+
+
 def collect_and_store(
     budget: int = config.DEFAULT_FETCH_BUDGET, seed: int | None = None, session=None
 ) -> int:
@@ -190,6 +219,7 @@ def collect_and_store(
             seed=seed, budget=budget, git_sha=_git_sha(),
         )
         delta = _sync_frame(conn, entries, today, context)
+        budget = _budget_left_today(conn, today, budget)
         state = db.frame_state(conn, today)
         queue = sampling.build_queue(
             new_today=state.new_today,

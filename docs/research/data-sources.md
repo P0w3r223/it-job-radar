@@ -42,7 +42,17 @@ the source must clearly permit machine access.
 - **Respect robots.txt** — only fetch what theprotocol allows (sitemap + offer pages).
 - **Fragmentary, not the whole base** — the EU *sui generis* database right protects
   extraction of a "substantial part". We sample a bounded number of offers per run, not
-  the full 6,449-offer base daily.
+  the full base daily.
+
+  **Corrected 2026-08-13.** That sentence described the intent and not the code: the budget
+  bounded one invocation and nothing summed the invocations, so seven runs on 2026-08-13
+  fetched **6037 offer pages against a 6530-offer base** — the whole base in a day, which is
+  exactly what this paragraph promises never happens. The runs were the one-off backfill that
+  took coverage from 10 % to 100 %, and each stayed inside the per-run ceiling, but the
+  aggregate is what the rule is about. `MAX_DAILY_FETCH` now sums the day's recorded runs
+  before a queue is built and trims or refuses the budget, so the promise is enforced rather
+  than intended. Recorded here rather than quietly fixed, because a research note claiming a
+  bound the collector did not have is the kind of thing this document exists to prevent.
 - **No personal data (GDPR)** — store only offer attributes (title, company **name**,
   city/region, salary, work mode, seniority, technologies). The `applying` block
   (recruiter URLs, reference numbers, personal-data clauses) is dropped. Caveat: for a
