@@ -16,7 +16,8 @@
 
 - family: qa
   patterns: [tester, testerka, " qa", "qa ", quality assurance, automatyk test, test engineer,
-             test automation, sdet, inżynier testów, testów]
+             test automation, sdet, inżynier testów, testów, jakości oprogramowania,
+             engineer in test, testowania oprogramowania, test coordinator]
 
 - family: devops
   patterns: [devops, devsecops, sre, site reliability, platform engineer, cloud engineer,
@@ -33,7 +34,9 @@
 - family: data
   patterns: [data engineer, hurtowni danych, big data, business intelligence, " bi ",
              etl, data warehouse, pl/sql, sql developer, database, dba, data migration,
-             inżynier danych, data analyst, analityk danych]
+             inżynier danych, data analyst, analityk danych, data science, data governance,
+             data quality, master data, data modell, analytics engineer, data platform,
+             raportowani, raportowania, przetwarzania danych, baz danych, bazodanow]
 
 - family: mobile
   patterns: [android, " ios", flutter, react native, mobile developer, mobile engineer]
@@ -56,27 +59,52 @@
 - family: erp
   patterns: [sap, erp, comarch, enova, symfonia, dynamics, navision, ifs applications]
 
+# Keeping the network and the systems people out of `support` is the same distinction this
+# file was written to make. A backup, Active Directory or virtualisation engineer does not
+# do the work a service-desk agent does, is not hired from the same pool and is not paid on
+# the same scale; pooling them would repeat the support-versus-developer mistake one level
+# down. Tested before `support` so its bare "administrator" cannot swallow them.
+- family: infrastructure
+  patterns: [sieci, sieciow, network, noc engineer, teletransmisj, firewall, lan/wan,
+             infrastruktur, infrastructure, active directory, entra id, backup,
+             wirtualizacj, virtualization, vmware, citrix, mainframe, system engineer,
+             systems engineer, systemów it, windows server,
+             observability, administrator]
+
 - family: support
-  # Bare "administrator" is deliberate and only safe here: database and ERP administrators
-  # are claimed by the data and erp families above, which are tested first.
-  patterns: [helpdesk, help desk, service desk, wsparcia technicznego, informatyk,
-             administrator, network engineer, systems engineer, support engineer,
-             serwisant, technik, customer success, "ds. it", "ds. obsługi",
-             specjalista it, it specialist]
+  # Support here means someone answering for a user or a running service: the desk, the
+  # lines behind it, and the people who keep an application usable.
+  patterns: [helpdesk, help desk, service desk, servicedesk, wsparci, wsparcie,
+             użytkownik, użytkownikó, informatyk, it support, support specialist,
+             support agent, support engineer, desktop support, customer support,
+             technical support, linii wsparcia, operator komputerow, serwisant, technik,
+             customer success, "ds. it", "ds. obsługi", specjalista it, it specialist,
+             utrzymania systemów, service delivery, itsm, service coordinator]
 
 - family: analyst
-  patterns: [analit, analyst, business analysis, konsultant, consultant, wdrożeni]
+  # Digital-transformation and process roles are business analysis under another name: they
+  # describe the work, agree it with the people who do it, and hand it to engineering.
+  patterns: [analit, analyst, business analysis, konsultant, consultant, wdrożeni,
+             transformacji cyfrowej, process improvement, procesów operacyjnych,
+             "ds. procesów", zarządzania zmianą]
 
 - family: product
   patterns: [product owner, product manager, scrum master, agile coach, projektant ux,
              " ux", ui designer, graphic design, ux/ui]
 
 - family: management
+  # A bare "lead" was tried and withdrawn on the data: in English titles it marks seniority
+  # at least as often as a job, and it was labelling "Lead Developer" and "Senior Lead
+  # ServiceNow Developer" as management. Lead phrases are therefore named one by one. The
+  # family also sits late, so "Technical Lead — Data Science" is counted as data work led by
+  # someone: what the person does is the question, seniority is a separate dimension.
   patterns: [manager, menedżer, kierownik, head of, dyrektor, szef, team lead, tech lead,
-             engineering lead]
+             engineering lead, delivery lead, practice lead, koordynator, koordynatork,
+             coordinator, chief technology, lider, liderka]
 
 # Generic development titles with no stated specialisation. Deliberately last among the
 # engineering families: reaching this rule means the title said "developer" and nothing more.
 - family: software
   patterns: [programist, developer, deweloper, software engineer, inżynier oprogramowania,
-             inżynieri, rpa, low-code, power platform, power apps, salesforce, sharepoint]
+             inżynieri, rpa, low-code, no code, power platform, power apps, salesforce,
+             sharepoint, integracj, integration, programmer, oprogramowania]

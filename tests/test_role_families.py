@@ -20,8 +20,13 @@ def rules():
     "title, expected",
     [
         ("Senior DevSecOps Engineer (Kubernetes, CI/CD)", "devops"),
-        ("Informatyk - Administrator IT", "support"),
-        ("Administrator Systemów i Sieci (k/m)", "support"),
+        ("Informatyk - Administrator IT", "infrastructure"),
+        ("Administrator Systemów i Sieci (k/m)", "infrastructure"),
+        ("Młodszy Specjalista ds. Wsparcia IT (K/M)", "support"),
+        ("Specjalista / Specjalistka ds. sieci komputerowych LAN/WAN", "infrastructure"),
+        ("Senior Entra ID & Active Directory Migration Specialist", "infrastructure"),
+        ("Lead Developer / Senior Software Engineer (Python, AWS)", "software"),
+        ("Starszy specjalista ds. transformacji cyfrowej", "analyst"),
         ("Business Analyst / Calypso Specialist", "analyst"),
         ("Analityczka / Analityk SAP IS-U CRM", "erp"),
         ("Specjalista ds. Hurtowni Danych (k/m)", "data"),
@@ -44,10 +49,24 @@ def test_order_decides_overlapping_titles(rules):
     """A DevSecOps engineer is devops, and a BI analyst is data — specificity wins."""
     assert normalize.classify_role_family("DevSecOps Security Engineer", rules) == "devops"
     assert normalize.classify_role_family("Business Intelligence Analyst", rules) == "data"
-    # bare "administrator" belongs to support, but only after data and erp have had a look
+    # bare "administrator" belongs to infrastructure, but only after data and erp have looked
     assert normalize.classify_role_family("Database Administrator", rules) == "data"
     assert normalize.classify_role_family("Administrator SAP Basis", rules) == "erp"
-    assert normalize.classify_role_family("Administrator wewnętrznych systemów", rules) == "support"
+    assert normalize.classify_role_family("Administrator wewnętrznych systemów", rules) == "infrastructure"
+
+
+def test_the_desk_and_the_machines_are_different_families(rules):
+    """The split that motivated adding `infrastructure`, stated as the pair it separates.
+
+    Both titles were "support" while one rule table covered both, which made the family
+    mean two jobs at once — the same pooling this file exists to undo, one level down.
+    """
+    assert normalize.classify_role_family("IT Support Agent (with German)", rules) == "support"
+    assert normalize.classify_role_family("Backup Engineer (f/m/x)", rules) == "infrastructure"
+    # An overlap resolved deliberately: "informatyk" is the Polish word for the IT person at
+    # the desk, but a title that also says "administrator" is describing the machines.
+    assert normalize.classify_role_family("Informatyk", rules) == "support"
+    assert normalize.classify_role_family("Informatyk - Administrator IT", rules) == "infrastructure"
 
 
 def test_java_pattern_does_not_swallow_javascript(rules):
