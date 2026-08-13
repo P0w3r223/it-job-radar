@@ -19,8 +19,6 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable
 
-from it_job_radar import config
-
 Step = Callable[[sqlite3.Connection], None]
 
 # --- v1: the schema as it existed before migrations were introduced ----------
@@ -221,10 +219,32 @@ def _v8_withhold_impossible_monthly(conn: sqlite3.Connection) -> None:
     keep exactly what the offer published, because the error is the source's to own and
     ours to refuse to republish.
     """
+    # The threshold is frozen at what SALARY_SANITY_MAX was when this step was written. A
+    # migration runs once per database and is a record of what happened to it; reading the
+    # live constant would let two databases at the same user_version hold different data
+    # once the policy moves. A changed threshold needs its own numbered step.
     conn.execute(
         "UPDATE offer_salaries SET monthly_from = NULL, monthly_to = NULL "
         "WHERE monthly_from > ? OR monthly_to > ?",
-        (config.SALARY_SANITY_MAX, config.SALARY_SANITY_MAX),
+        (200_000, 200_000),
+    )
+
+
+def _v9_withhold_monthly_below_the_floor(conn: sqlite3.Connection) -> None:
+    """The same withdrawal from the other side: an hourly rate filed as a monthly one.
+
+    v8 guarded only the ceiling, which caught the offer that published 14 500 PLN an hour
+    and missed its mirror image — eleven rows between 14 and 180 PLN "miesięcznie", among
+    them 31.40, to the grosz the statutory hourly minimum. They passed a floor of zero and
+    were dragging five published medians down, the junior employment median among them.
+
+    Frozen literal for the same reason as v8, and the same limit: only the derived columns
+    are cleared, because what the offer published about itself is not ours to correct.
+    """
+    conn.execute(
+        "UPDATE offer_salaries SET monthly_from = NULL, monthly_to = NULL "
+        "WHERE monthly_from < ? OR monthly_to < ?",
+        (1_000, 1_000),
     )
 
 
@@ -237,6 +257,7 @@ MIGRATIONS: tuple[tuple[int, str, Step], ...] = (
     (6, "one row per technology", _v6_one_row_per_technology),
     (7, "dated per-dimension metrics", _v7_dimension_metrics),
     (8, "withhold impossible monthly equivalents", _v8_withhold_impossible_monthly),
+    (9, "withhold monthly equivalents below the floor", _v9_withhold_monthly_below_the_floor),
 )
 
 SCHEMA_VERSION = MIGRATIONS[-1][0]

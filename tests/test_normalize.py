@@ -82,6 +82,33 @@ def test_an_impossible_monthly_equivalent_is_withheld_not_guessed():
     assert result["monthly_to"] is None
 
 
+def test_an_hourly_rate_filed_as_monthly_is_withheld_too():
+    """The mirror image, and the one that actually reached the published page.
+
+    Eleven rows sat between 14 and 180 PLN "miesięcznie" — among them 31.40, to the grosz
+    the statutory hourly minimum — and a floor of zero let every one of them through into
+    five published medians.
+    """
+    contract = {
+        "type": "kontrakt B2B", "salary_from": 140, "salary_to": 180,
+        "currency": "zł", "kind": "netto (+ VAT)", "time_unit": "miesięcznie",
+    }
+    result = normalize.normalize_salary(contract)
+    assert result["salary_from"] == 140
+    assert result["time_unit"] == "miesięcznie"
+    assert result["monthly_from"] is None
+    assert result["monthly_to"] is None
+
+
+def test_a_low_but_possible_monthly_wage_survives():
+    """The floor sits far below any lawful full-time wage, so it catches only unit errors."""
+    contract = {
+        "type": "umowa o pracę", "salary_from": 4666, "salary_to": 6000,
+        "currency": "zł", "kind": "gross", "time_unit": "miesięcznie",
+    }
+    assert normalize.normalize_salary(contract)["monthly_from"] == 4666
+
+
 def test_a_high_but_possible_rate_survives():
     """The guard rejects the impossible, not the well-paid: 300 PLN/h is a real rate."""
     contract = {
