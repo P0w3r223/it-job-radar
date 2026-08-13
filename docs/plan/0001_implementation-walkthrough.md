@@ -483,7 +483,7 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
 (PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
 repo. PR #7 is merged and the live page serves it. The second run of the day is on
-`chore/collect-2026-08-13-second` (PR #8). 162 tests green; coverage **32.9%**
+`chore/collect-2026-08-13-second` (PR #8). 175 tests green; coverage **32.9%**
 (2150 of 6530), four dated points per metric. What remains is still waiting on
 **days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
 
@@ -544,17 +544,26 @@ Then the concept-catalogue backlog: technology co-occurrence, salary premium by 
   monthly equivalent beyond `SALARY_SANITY_MAX` — one offer filed 14 500 PLN as an hourly
   rate — while the reported amount and unit stay as the source wrote them. Migration v8
   repairs stored rows, because salaries are written once per offer and no observation
-  re-derives them. `quality.salary_monthly_withheld` counts the refusals, so a withheld
-  figure never reads as a salary that was simply not disclosed.
+  re-derives them, and v9 does the same at the floor — eleven rows at 14-180 PLN
+  "miesięcznie" were hourly rates dragging five medians down. Migration thresholds are
+  frozen literals, never the live constant: a step runs once per database and must not
+  depend on a policy that can move afterwards. `quality.salary_monthly_withheld` counts the
+  refusals, so a withheld figure never reads as a salary that was simply not disclosed.
 - **The residue cannot carry the headline.** `other` and `unclassified` are excluded from
   the claim `_headline` derives, because leading with them publishes a gap in our own rule
   table as a fact about the market — which is what happened on 2026-08-13, when `other`
   tied `support` and won the alphabetical tie-break. They stay in the denominator, in the
   chart and in `role_family_other_share`, which is where a rising residue belongs. By the
   second collect that day `other` was the largest junior bucket outright (44 against
-  support's 32) and the claim weakened itself to "the largest classified category" — which
-  is the guard working, and it prices the next piece of work: **the rule table is now the
-  largest thing standing between the reader and the junior finding.**
+  support's 32) and the claim weakened itself to "the largest classified category" — the
+  guard working, and the trigger for the rule-table pass that followed the same day:
+  **`infrastructure` is now its own family** (networks, Active Directory, backup,
+  virtualisation, mainframe), `support` means the desk and the lines behind it, and the
+  residue fell to 5.8% with junior support at 52 of 162.
+- **The page's majority claim is measured, not inferred from the ranking.** "Most junior IT
+  offers are not development jobs" is published only while `DEVELOPMENT_FAMILIES` sum under
+  half the segment — families are fine-grained enough that development could pass half
+  while every single one of them stays below `support`.
 
 ## Open questions
 
