@@ -1,38 +1,38 @@
 {
-  "generated_at": "2026-08-13T15:41:52",
-  "git_sha": "261ba2a",
+  "generated_at": "2026-08-14T13:29:38",
+  "git_sha": "ea6c199",
   "schema_version": 11,
   "snapshot": {
-    "id": 23,
+    "id": 25,
     "kind": "collect",
-    "observed_date": "2026-08-13",
-    "started_at": "2026-08-13T15:20:49"
+    "observed_date": "2026-08-14",
+    "started_at": "2026-08-14T13:21:16"
   },
   "coverage": {
-    "offers_listed": 6530,
-    "attributes_known": 6530,
-    "share": 1.0
+    "offers_listed": 6571,
+    "attributes_known": 6570,
+    "share": 0.9998
   },
   "rows": {
-    "offers": 6839,
-    "offer_seniority": 8303,
-    "offer_work_modes": 10817,
-    "offer_locations": 6837,
-    "offer_technologies": 34932,
-    "offer_salaries": 9359,
-    "snapshots": 23,
-    "snapshot_stats": 298,
-    "snapshot_dimension_metrics": 1402,
-    "sitemap_offers": 7127
+    "offers": 7155,
+    "offer_seniority": 8680,
+    "offer_work_modes": 11335,
+    "offer_locations": 7153,
+    "offer_technologies": 36549,
+    "offer_salaries": 9804,
+    "snapshots": 25,
+    "snapshot_stats": 334,
+    "snapshot_dimension_metrics": 1512,
+    "sitemap_offers": 7444
   },
-  "bytes": 1190442,
+  "bytes": 1244429,
   "quality": {
-    "salary_disclosure_rate": 0.2813,
-    "stored_alias_coverage_rate": 0.7176,
-    "salary_kind_unknown_share": 0.7679,
-    "salary_monthly_withheld": 26.0,
-    "duplicate_posting_share": 0.3887,
-    "role_family_other_share": 0.0809,
+    "salary_disclosure_rate": 0.2822,
+    "stored_alias_coverage_rate": 0.7185,
+    "salary_kind_unknown_share": 0.7671,
+    "salary_monthly_withheld": 28.0,
+    "duplicate_posting_share": 0.388,
+    "role_family_other_share": 0.0857,
     "role_family_unclassified": 0.0,
     "strata_below_min_n": 1,
     "freshness_days": 0
@@ -43,7 +43,7 @@
       "company",
       "offer_url"
     ],
-    "offer_id": "salted sha256, truncated — stable across snapshots, not reversible",
+    "offer_id": "salted sha256, truncated, stable across snapshots. Pseudonymised, not anonymised: the salt is in the public repository and the id space is enumerable from the source's sitemap, so this breaks casual joins rather than resisting a determined reader. vacancy_id hashes title and company, which are themselves withheld — the same caveat applies.",
     "note": "Derived analytical data. It answers market questions and deliberately cannot answer listing questions (who is hiring, where to apply)."
   },
   "source": {
