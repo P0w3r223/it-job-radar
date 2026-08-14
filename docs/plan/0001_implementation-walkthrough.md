@@ -2,7 +2,7 @@
 
 Date: 2026-08-11 (living; last revised 2026-08-12)
 Status: phases 0-6 complete except 6.5
-Author: P0w3r223 + Claude
+Author: P0w3r223
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0001_browser-side-analytics-stack.md`,
 `docs/adr/0002_published-artifact-policy.md`
 
