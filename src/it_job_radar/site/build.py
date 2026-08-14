@@ -21,7 +21,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from markupsafe import Markup
 
 from it_job_radar import config
-from it_job_radar.analytics import engine, movement, stats
+from it_job_radar.analytics import engine, movement, premium, stats
 from it_job_radar.site import charts
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -96,6 +96,28 @@ def _coverage_points(connection) -> tuple[list[charts.Point], float]:
         for _, row in frame.iterrows()
     ]
     return points, float(frame["offers_listed"].iloc[-1])
+
+
+def _premium(connection, kind: str) -> tuple[str, dict]:
+    """The premium forest for one contract kind, and what it was measured on."""
+    fit = premium.estimate(engine.run("salary_premium_rows", connection=connection, kind=kind))
+    estimates = [
+        charts.Estimate(
+            label=item.technology,
+            value=item.percent,
+            low=item.ci_low,
+            high=item.ci_high,
+            n=item.n,
+            muted=not item.distinguishable,
+        )
+        for item in fit.premiums
+    ]
+    waiting = (
+        f"No technology is listed by {config.MIN_PREMIUM_N} vacancies disclosing this "
+        "contract kind — too few to hold anything level."
+    )
+    svg = charts.forest_chart(estimates, f"Estimated pay premium, {kind}", waiting)
+    return svg, {"vacancies": fit.vacancies, "controls": ", ".join(fit.controls)}
 
 
 def _pair_bars(connection) -> tuple[list[charts.Bar], int]:
@@ -261,10 +283,17 @@ def gather(dataset_dir: Path | None = None) -> dict:
         coverage_points, coverage_ceiling = _coverage_points(connection)
         movement_chart, movement_context = _movement(connection)
         pair_bars, pair_base = _pair_bars(connection)
+        premium_b2b, premium_b2b_context = _premium(connection, config.CONTRACT_B2B)
+        premium_employment, premium_employment_context = _premium(
+            connection, config.CONTRACT_EMPLOYMENT
+        )
         page = {
             **movement_context,
             "pair_base": pair_base,
             "min_pair_n": config.MIN_PAIR_N,
+            "min_premium_n": config.MIN_PREMIUM_N,
+            "premium_b2b": premium_b2b_context,
+            "premium_employment": premium_employment_context,
             "manifest": manifest,
             # The dataset's own timestamp, never the wall clock. Two reasons: the reader
             # cares when the data was exported, not when the HTML happened to be rendered;
@@ -310,6 +339,8 @@ def gather(dataset_dir: Path | None = None) -> dict:
                     ],
                     "Work modes",
                 ),
+                "premium_b2b": premium_b2b,
+                "premium_employment": premium_employment,
                 "pairs": charts.bar_chart(
                     pair_bars, "Asked together more often than chance", unit="lift"
                 ),

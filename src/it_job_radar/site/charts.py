@@ -56,6 +56,18 @@ class Range:
 
 
 @dataclass(frozen=True)
+class Estimate:
+    """One modelled effect: a point, the interval around it, and the rows behind it."""
+
+    label: str
+    value: float  # percent
+    low: float
+    high: float
+    n: int
+    muted: bool = False  # the interval spans zero — no measured gap
+
+
+@dataclass(frozen=True)
 class Change:
     """One technology's move between two comparable runs, in share of the market."""
 
@@ -203,6 +215,50 @@ def accumulation_chart(
         f"{_text(note)}, {_text(unit)} with attributes collected{_text(drawn)}</text>"
     )
     return _svg(_WIDTH, _SERIES_HEIGHT, f"{title} ({unit})", "".join(parts))
+
+
+def forest_chart(estimates: list[Estimate], title: str, waiting: str, unit: str = "%") -> str:
+    """Modelled effects as points with their intervals, against a zero line.
+
+    A bar chart would be the wrong picture here: the bar's length reads as the finding, and
+    the finding is the estimate *together with* how well it is pinned down. In a forest plot
+    an interval that crosses zero shows itself, so a technology with no measured gap cannot
+    be mistaken for one that pays badly — and neither has to be deleted to keep the page
+    honest.
+    """
+    if not estimates:
+        return f'<p class="empty">{_text(waiting)}</p>'
+
+    span = max(max(abs(item.low), abs(item.high)) for item in estimates) or 1.0
+    plot_width = _WIDTH - _LABEL_WIDTH - 190  # room for the interval printed in full
+    zero_x = _LABEL_WIDTH + plot_width / 2
+    height = len(estimates) * (_ROW_HEIGHT + 4) + _PAD * 2 + 16
+
+    def x_of(value: float) -> float:
+        return zero_x + max(-1.0, min(1.0, value / span)) * (plot_width / 2)
+
+    parts = [
+        f'<line class="axis-line" x1="{zero_x}" x2="{zero_x}" y1="{_PAD - 4}" '
+        f'y2="{len(estimates) * (_ROW_HEIGHT + 4) + _PAD}"></line>'
+    ]
+    for index, item in enumerate(estimates):
+        y = _PAD + index * (_ROW_HEIGHT + 4) + 10
+        dot = "range-dot muted" if item.muted else "range-dot"
+        parts.append(
+            f'<text class="bar-label" x="{_LABEL_WIDTH - 8}" y="{y + 4}" text-anchor="end">'
+            f"{_text(item.label)}</text>"
+            f'<line class="ci" x1="{x_of(item.low):.1f}" x2="{x_of(item.high):.1f}" '
+            f'y1="{y}" y2="{y}"></line>'
+            f'<circle class="{dot}" cx="{x_of(item.value):.1f}" cy="{y}" r="4"></circle>'
+            f'<text class="bar-value" x="{_LABEL_WIDTH + plot_width + 10}" y="{y + 4}">'
+            f"{item.value:+.1f}{_text(unit)} ({item.low:+.1f} to {item.high:+.1f}, "
+            f"n={item.n})</text>"
+        )
+    parts.append(
+        f'<text class="axis" x="{zero_x}" y="{height - 6}" text-anchor="middle">'
+        f"0{_text(unit)} — no measured gap</text>"
+    )
+    return _svg(_WIDTH, height, f"{title} ({unit})", "".join(parts))
 
 
 def movement_chart(changes: list[Change], title: str, waiting: str, footer: str) -> str:

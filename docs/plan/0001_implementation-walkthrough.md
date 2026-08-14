@@ -511,9 +511,11 @@ exported days exist, but only two of them are *comparable* — the earlier ones 
 at 10-63% coverage, and the technology series was renamed with the unit change on 08-13.
 The panel ships with the rule that says so and draws on the third comparable run.
 
-Technology co-occurrence shipped 2026-08-14, as a lift ranking rather than a graph. What
-remains of the concept-catalogue backlog: salary premium by technology (regression
-controlling for seniority and city), and the dataset export that P4 `pl-jobs-lora` consumes.
+The concept-catalogue backlog cleared on 2026-08-14: technology co-occurrence shipped as a
+lift ranking, the salary premium as a controlled regression, and the P4 dataset export was
+retired rather than built — P4 needs prose, which ADR 0002 keeps out of the artifact, so it
+collects its own and vendors this project's normalization. What is left is 7.3 and whatever
+the data suggests next.
 
 ### Standing operational notes
 

@@ -26,6 +26,7 @@ src/it_job_radar/
   analytics/stats.py       # bootstrap intervals; suppression by count AND interval width
   analytics/history.py     # dated per-dimension metrics (7.1) — same queries, stored per run
   analytics/movement.py    # share movement between comparable runs (7.4) — pure
+  analytics/premium.py     # pay premium per technology: OLS on log salary, HC1 — pure
   site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
   pipeline.py              # CLI: observe | collect | quality | export | site | verify
 data/normalization/        # technology alias dictionary (YAML)
