@@ -49,7 +49,7 @@ docs/research/             # data-source research + legal/ethics
   never average them together. Watch `time_unit` (`godzinowo` hourly vs monthly), and note
   that the source lets an employer file one unit under the other — a monthly equivalent
   outside `SALARY_SANITY_MIN..MAX` is withheld rather than published or reinterpreted.
-- **Count vacancies, not adverts.** One role is published once per city, so ~36% of adverts
+- **Count vacancies, not adverts.** One role is published once per city, so ~39% of adverts
   repeat a job. Every counting query groups on `vacancy_id` (title + company, hashed on
   export); `city_vs_remote_rows` is the deliberate exception, because eighteen cities really
   are eighteen cities. Changing this changes what every published metric means — the series
