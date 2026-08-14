@@ -4,7 +4,7 @@ Date: 2026-08-11
 Status: **amended 2026-08-12** — the SQL-as-single-definition half is accepted and shipped;
 the DuckDB-WASM half is rejected on a measurement taken after this ADR was written
 (see *Amendment*).
-Author: P0w3r223 + Claude
+Author: P0w3r223
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0002_published-artifact-policy.md`
 
 ---
