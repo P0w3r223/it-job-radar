@@ -146,10 +146,10 @@ the drift between `reports/site/` and `docs/` becomes impossible rather than dis
 | Concept | Value | Why deferred |
 |---|---|---|
 | ~~Technology co-occurrence graph~~ | High visual payoff; one self-join | **Shipped 2026-08-14** as a lift ranking rather than a graph: the pair *counts* are just the demand chart drawn twice, so what is published is how far each pair sits from chance, floored at `MIN_PAIR_N` shared vacancies |
-| Salary premium per technology (regression, controlling for seniority/city) | Strongest analytical claim available | Needs `n` per cell that the current panel cannot support |
+| ~~Salary premium per technology~~ | Strongest analytical claim available | **Shipped 2026-08-14** at full coverage: OLS on the log salary floor with seniority and work-mode controls, HC1 intervals, floor of `MIN_PREMIUM_N` disclosing vacancies. City is *not* controlled and that is deliberate — one vacancy is advertised across eighteen cities, so a city term would describe the advert |
 | Offer survival curve (Kaplan-Meier on offer lifetime) | Ties data engineering to statistics | Requires several weeks of `first_seen`/`last_seen` |
 | Role-family classifier (backend/frontend/devops/data/QA/support) | Fixes the misleading junior segment | Accepted, but as a rule table — an ML classifier here would be complexity for its own sake |
-| Clean dataset export consumed by P4 `pl-jobs-lora` | Turns A2 into a source for the portfolio, as the index README already claims | Blocked on the export layer (Phase 4); trivial afterwards |
+| ~~Clean dataset export consumed by P4 `pl-jobs-lora`~~ | Turns A2 into a source for the portfolio | **Superseded 2026-08-14.** P4 needs the posting *prose*, and ADR 0002 keeps prose out of the published artifact by design. It therefore collects its own postings under this project's etiquette and vendors this project's normalization and vocabulary instead — the reuse is real, but it is code and method, not a file |
 | Semantic search over titles (embeddings) | Fashionable | Adds a heavy dependency to answer a question rules already answer. Rejected for now |
 | Multi-source collection (other boards) | Broader market picture | `docs/research/data-sources.md` rejected the alternatives on robots.txt grounds; revisit only if that changes |
 | Live collection from CI | Removes the manual step | Would require bot evasion; deliberately rejected (README states this) |
