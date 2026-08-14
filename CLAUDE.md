@@ -25,6 +25,7 @@ src/it_job_radar/
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals; suppression by count AND interval width
   analytics/history.py     # dated per-dimension metrics (7.1) — same queries, stored per run
+  analytics/movement.py    # share movement between comparable runs (7.4) — pure
   site/build.py            # Jinja2 + inline-SVG charts -> docs/ (no JavaScript, no PNGs)
   pipeline.py              # CLI: observe | collect | quality | export | site | verify
 data/normalization/        # technology alias dictionary (YAML)
@@ -70,6 +71,10 @@ docs/research/             # data-source research + legal/ethics
   `analytics/history.py` runs the same named queries the page runs, which is why `export`
   writes the series table twice — a run cannot appear in the dataset it is measured from
   until it has been measured. Every point carries its `n`; the contract rejects one without.
+- **Movement is a share, and only between comparable runs.** Counts rose on every early run
+  because coverage did (10% → 100% in four days), so `technology_movement` compares shares,
+  drops runs under `MIN_COMPARABLE_COVERAGE`, and takes one point per day. Below
+  `MIN_SERIES_POINTS` comparable days the panel states what it waits for instead of drawing.
 
 ## Conventions
 

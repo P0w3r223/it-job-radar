@@ -69,6 +69,7 @@ src/it_job_radar/
   analytics/engine.py      # runs the named queries in DuckDB over the dataset
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression
   analytics/history.py     # dated per-dimension metrics, measured with those same queries
+  analytics/movement.py    # share movement between runs comparable enough to compare
   site/build.py            # Jinja2 + inline-SVG charts -> docs/
   pipeline.py              # CLI
 docs/data/                 # the published artifact: Parquet + manifest.json
@@ -146,8 +147,10 @@ pytest
 - **Collection is not scheduled.** theprotocol serves stripped pages to datacenter IPs, so
   collection runs locally and the site is published from a committed snapshot; CI keeps the
   suite green. Escalating bot-evasion to scrape from CI would be the wrong trade-off.
-- **Trends need time.** Survival analysis unlocks on the flow cohort after roughly two
-  weeks of observation; technology trends need several runs on distinct days.
+- **Trends need time.** Technology movement is published as a share, and only between runs
+  that saw at least 90% of the live market — two such days exist, so the panel currently
+  states what it is waiting for. Survival analysis unlocks on the flow cohort after roughly
+  two weeks of observation.
 
 ## Data source & ethics
 
