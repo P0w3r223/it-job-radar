@@ -52,6 +52,15 @@ class Range:
 
 
 @dataclass(frozen=True)
+class Change:
+    """One technology's move between two comparable runs, in share of the market."""
+
+    label: str
+    delta: float  # in share units; positive is a wider slice of the market
+    note: str  # the two counts behind it, so a move is never a percentage alone
+
+
+@dataclass(frozen=True)
 class Point:
     """One recorded run: what had accumulated by then, and whether that run added to it."""
 
@@ -189,6 +198,55 @@ def accumulation_chart(
         f"{_text(note)}, {_text(unit)} with attributes collected{_text(drawn)}</text>"
     )
     return _svg(_WIDTH, _SERIES_HEIGHT, f"{title} ({unit})", "".join(parts))
+
+
+def movement_chart(changes: list[Change], title: str, waiting: str, footer: str) -> str:
+    """Change in share as bars either side of a zero line, largest move first.
+
+    Diverging from zero rather than two bars per technology: the quantity is a difference,
+    and drawing the two shares side by side invites reading the taller one as the finding
+    when the finding is the gap between them.
+
+    ``waiting`` is what the panel says when there is nothing publishable yet — a series too
+    short, or runs too far apart in coverage to compare. It is passed in rather than
+    written here because the reason belongs to the data, not to the drawing, and a reader
+    told only "no data" cannot tell a young series from a broken pipeline.
+
+    Every bar carries the two counts behind it. A move of "+0.4 pp" between two numbers the
+    reader cannot see is a figure that cannot be checked.
+    """
+    if not changes:
+        return f'<p class="empty">{_text(waiting)}</p>'
+
+    largest = max(abs(change.delta) for change in changes) or 1.0
+    plot_width = _WIDTH - _LABEL_WIDTH - 130
+    half = plot_width / 2
+    zero_x = _LABEL_WIDTH + half
+    height = len(changes) * _ROW_HEIGHT + _PAD * 2 + 16
+
+    parts = [
+        f'<line class="axis-line" x1="{zero_x}" x2="{zero_x}" y1="{_PAD}" '
+        f'y2="{len(changes) * _ROW_HEIGHT + _PAD}"></line>'
+    ]
+    for index, change in enumerate(changes):
+        y = _PAD + index * _ROW_HEIGHT
+        width = abs(change.delta) / largest * half
+        rising = change.delta >= 0
+        x = zero_x if rising else zero_x - width
+        anchor_x = zero_x + width + 6 if rising else zero_x - width - 6
+        parts.append(
+            f'<text class="bar-label" x="{_LABEL_WIDTH - 8}" y="{y + 13}" '
+            f'text-anchor="end">{_text(change.label)}</text>'
+            f'<rect class="bar {"up" if rising else "down"}" x="{x:.1f}" y="{y + 3}" '
+            f'width="{max(1.0, width):.1f}" height="{_ROW_HEIGHT - 9}" rx="2"></rect>'
+            f'<text class="bar-value" x="{anchor_x:.1f}" y="{y + 13}" '
+            f'text-anchor="{"start" if rising else "end"}">'
+            f"{change.delta * 100:+.1f} pp · {_text(change.note)}</text>"
+        )
+    parts.append(
+        f'<text class="axis" x="{_LABEL_WIDTH}" y="{height - 6}">{_text(footer)}</text>'
+    )
+    return _svg(_WIDTH, height, f"{title} (share of vacancies)", "".join(parts))
 
 
 def range_chart(ranges: list[Range], title: str, unit: str = "PLN/month") -> str:

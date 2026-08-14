@@ -125,6 +125,11 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .bar-value, .chart .axis { fill: var(--muted); font-size: 10.5px; }
 .chart .bar { fill: var(--accent); }
 .chart .bar.muted { fill: var(--accent-soft); }
+/* Direction of a move. The colour is a second reading of the sign, never the only one:
+   the signed value is printed beside every bar, so the chart survives being read in
+   greyscale or by someone who cannot separate the two hues. */
+.chart .bar.up { fill: var(--positive); }
+.chart .bar.down { fill: var(--warn); }
 .chart .range { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
 .chart .range.muted { stroke: var(--accent-soft); }
 .chart .range-dot { fill: var(--accent); }

@@ -21,7 +21,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from markupsafe import Markup
 
 from it_job_radar import config
-from it_job_radar.analytics import engine, stats
+from it_job_radar.analytics import engine, movement, stats
 from it_job_radar.site import charts
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -96,6 +96,46 @@ def _coverage_points(connection) -> tuple[list[charts.Point], float]:
         for _, row in frame.iterrows()
     ]
     return points, float(frame["offers_listed"].iloc[-1])
+
+
+def _movement(connection) -> tuple[str, dict]:
+    """The technology movement panel, and what it is allowed to claim today.
+
+    The panel renders in every state, including the state where it draws nothing: a reader
+    who is told "two of the three runs needed, and runs below 90% coverage are not counted"
+    knows what is missing, while a section that simply disappears until the data is ready
+    looks like a page that never had one.
+    """
+    comparison = movement.compare(engine.run("technology_movement", connection=connection))
+    changes = [
+        charts.Change(
+            label=move.technology,
+            delta=move.delta,
+            note=f"{move.first_vacancies} → {move.last_vacancies}",
+        )
+        for move in comparison.moves
+    ]
+    context = {
+        "movement_days": len(comparison.days),
+        "movement_first": comparison.first_day,
+        "movement_last": comparison.last_day,
+        "movement_min_days": config.MIN_SERIES_POINTS,
+        "min_comparable_coverage": config.MIN_COMPARABLE_COVERAGE,
+    }
+    if comparison.drawable:
+        base = comparison.moves[0]
+        footer = (
+            f"{comparison.first_day} → {comparison.last_day}, share of "
+            f"{base.n_first} and {base.n_last} analysed vacancies"
+        )
+    else:
+        footer = ""
+    waiting = (
+        f"{len(comparison.days)} comparable "
+        f"{'run' if len(comparison.days) == 1 else 'runs'} of the "
+        f"{config.MIN_SERIES_POINTS} needed — this waits for days, not for offers."
+    )
+    return charts.movement_chart(changes, "How each technology's share moved", waiting, footer), context
 
 
 def _role_bars(frame: pd.DataFrame, total: int) -> list[charts.Bar]:
@@ -198,7 +238,9 @@ def gather(dataset_dir: Path | None = None) -> dict:
         all_roles = engine.run("role_family_distribution", connection=connection)
         work_modes = engine.run("work_mode_distribution", connection=connection)
         coverage_points, coverage_ceiling = _coverage_points(connection)
+        movement_chart, movement_context = _movement(connection)
         page = {
+            **movement_context,
             "manifest": manifest,
             # The dataset's own timestamp, never the wall clock. Two reasons: the reader
             # cares when the data was exported, not when the HTML happened to be rendered;
@@ -244,6 +286,7 @@ def gather(dataset_dir: Path | None = None) -> dict:
                     ],
                     "Work modes",
                 ),
+                "movement": movement_chart,
                 "coverage": charts.accumulation_chart(
                     coverage_points,
                     "Coverage accumulated run by run",

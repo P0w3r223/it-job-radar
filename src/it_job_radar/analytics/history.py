@@ -62,7 +62,7 @@ COUNTS = (
     # one offer lists several, so that sum counts offers repeatedly and would make each
     # share smaller the wider the ranking gets.
     Count(
-        "technology_vacancies", "top_technologies", "technology", DATASET,
+        config.TECHNOLOGY_SERIES, "top_technologies", "technology", DATASET,
         {"limit": config.HISTORY_TECHNOLOGY_LIMIT},
     ),
     Count("role_family_vacancies", "role_family_distribution", "role_family", DATASET),
