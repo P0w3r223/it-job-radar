@@ -119,6 +119,14 @@ MIN_PAIR_N = 30
 # How many pairs the chart shows.
 PAIR_LIMIT = 12
 
+# --- Salary premium per technology -------------------------------------------
+# Vacancies that must list a technology before it enters the model. Higher than
+# `MIN_STRATUM_N` on purpose: a coefficient is estimated *alongside* every other indicator,
+# so it needs enough rows to separate its own effect from the ones it travels with.
+MIN_PREMIUM_N = 60
+# How many technologies the forest plot shows, largest effect either way.
+PREMIUM_LIMIT = 12
+
 # --- Published artifact (ADR 0002) -------------------------------------------
 # The dataset lives inside the published site: it *is* the artifact the page downloads,
 # so it is committed rather than generated on the reader's behalf.

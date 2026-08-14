@@ -116,6 +116,37 @@
 </p>
 {% endif %}
 
+<h2>What a technology is associated with in pay</h2>
+<p>
+  Comparing the median salary of vacancies listing Kubernetes against the rest measures
+  seniority, not Kubernetes. These figures come from one regression per contract kind of the
+  log salary floor on seniority, work mode and a technology indicator, so each is read as
+  "with the others held level". The dot is the estimate, the line is its 95% interval from
+  robust standard errors, and an interval crossing zero means no measured gap rather than a
+  penalty. Technologies listed by fewer than {{ min_premium_n }} disclosing vacancies are
+  not modelled at all.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.premium_b2b }}</div>
+  <figcaption>
+    B2B, {{ premium_b2b.vacancies }} vacancies disclosing a monthly floor.
+    {% if premium_b2b.controls %}Held level: {{ premium_b2b.controls }}.{% endif %}
+  </figcaption>
+</figure>
+<figure>
+  <div class="chart-wrap">{{ charts.premium_employment }}</div>
+  <figcaption>
+    Employment, {{ premium_employment.vacancies }} vacancies disclosing a monthly floor.
+    {% if premium_employment.controls %}Held level: {{ premium_employment.controls }}.{% endif %}
+  </figcaption>
+</figure>
+<p class="note">
+  Association, not cause. Nobody is paid more <em>because</em> an advert lists a technology:
+  it travels with the kind of work, the size of the employer and the corner of the market
+  that discloses pay at all — a quarter of it. Read these as where the money is, not as what
+  to learn next.
+</p>
+
 <h2>Where the work is</h2>
 <figure>
   <div class="chart-wrap">{{ charts.work_modes }}</div>

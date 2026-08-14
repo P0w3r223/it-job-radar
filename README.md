@@ -70,6 +70,7 @@ src/it_job_radar/
   analytics/stats.py       # bootstrap intervals, thin-stratum suppression
   analytics/history.py     # dated per-dimension metrics, measured with those same queries
   analytics/movement.py    # share movement between runs comparable enough to compare
+  analytics/premium.py     # pay premium per technology: OLS on log salary, HC1 intervals
   site/build.py            # Jinja2 + inline-SVG charts -> docs/
   pipeline.py              # CLI
 docs/data/                 # the published artifact: Parquet + manifest.json
