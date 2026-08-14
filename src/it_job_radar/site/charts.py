@@ -36,6 +36,10 @@ class Bar:
     value: float
     note: str | None = None  # e.g. "n=19", rendered next to the value
     muted: bool = False  # a stratum too thin to read as solid
+    # For bars whose value is not a count. A lift of 4.6 printed as "5" is a different
+    # number, so the caller may state how its own quantity reads; the bar length still
+    # comes from `value`.
+    value_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -106,7 +110,8 @@ def bar_chart(bars: list[Bar], title: str, unit: str = "offers") -> str:
             f'<rect class="{classes}" x="{_LABEL_WIDTH}" y="{y + 3}" '
             f'width="{width:.1f}" height="{_ROW_HEIGHT - 9}" rx="2"></rect>'
             f'<text class="bar-value" x="{_LABEL_WIDTH + width + 6:.1f}" y="{y + 13}">'
-            f"{_thousands(bar.value)}{_text(note)}</text>"
+            f"{_text(bar.value_text) if bar.value_text else _thousands(bar.value)}"
+            f"{_text(note)}</text>"
         )
     return _svg(_WIDTH, height, f"{title} ({unit})", "".join(parts))
 

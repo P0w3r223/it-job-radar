@@ -68,6 +68,19 @@
   </figcaption>
 </figure>
 
+<h2>What is asked together</h2>
+<figure>
+  <div class="chart-wrap">{{ charts.pairs }}</div>
+  <figcaption>
+    Not the most frequent pairs — those are simply the two most common technologies, which
+    the chart above already shows. This is <em>lift</em>: how many times more often two
+    technologies share a vacancy than they would if employers picked them independently.
+    Chance is 1×. Measured over {{ pair_base }} vacancies that list at least one required
+    technology, and a pair is dropped below {{ min_pair_n }} shared vacancies, where lift
+    stops being stable.
+  </figcaption>
+</figure>
+
 <h2>Vacancies by role family</h2>
 <figure>
   <div class="chart-wrap">{{ charts.roles }}</div>
