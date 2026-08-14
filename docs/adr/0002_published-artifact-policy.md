@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Status: accepted
-Author: P0w3r223 + Claude
+Author: P0w3r223
 Related to: `docs/adr/0001_browser-side-analytics-stack.md`, `docs/research/data-sources.md`
 
 ---

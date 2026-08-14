@@ -2,7 +2,7 @@
 
 Date: 2026-08-13
 Status: accepted
-Author: P0w3r223 + Claude
+Author: P0w3r223
 Related to: `docs/adr/0003_sampling-design.md`, `src/it_job_radar/analytics/queries/*.sql`
 
 ---
