@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Status: accepted
-Author: P0w3r223 + Claude
+Author: P0w3r223
 Related to: `docs/adr/0001_browser-side-analytics-stack.md`,
 `docs/adr/0002_published-artifact-policy.md`,
 `docs/plan/0001_implementation-walkthrough.md`
