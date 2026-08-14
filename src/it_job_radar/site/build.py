@@ -98,6 +98,27 @@ def _coverage_points(connection) -> tuple[list[charts.Point], float]:
     return points, float(frame["offers_listed"].iloc[-1])
 
 
+def _pair_bars(connection) -> tuple[list[charts.Bar], int]:
+    """Technology pairs by lift, and the population the lift was measured over.
+
+    The bar is the lift and the note is the pair's own count, because neither reads without
+    the other: lift says how far from chance, `n` says how much market that covers.
+    """
+    frame = engine.run("technology_pairs", connection=connection, limit=config.PAIR_LIMIT)
+    if frame.empty:
+        return [], 0
+    bars = [
+        charts.Bar(
+            label=f"{row['technology_a']} + {row['technology_b']}",
+            value=float(row["lift"]),
+            value_text=f"{row['lift']:.1f}×",
+            note=f"n={int(row['vacancies'])}",
+        )
+        for _, row in frame.iterrows()
+    ]
+    return bars, int(frame["analysed_vacancies"].iloc[0])
+
+
 def _movement(connection) -> tuple[str, dict]:
     """The technology movement panel, and what it is allowed to claim today.
 
@@ -239,8 +260,11 @@ def gather(dataset_dir: Path | None = None) -> dict:
         work_modes = engine.run("work_mode_distribution", connection=connection)
         coverage_points, coverage_ceiling = _coverage_points(connection)
         movement_chart, movement_context = _movement(connection)
+        pair_bars, pair_base = _pair_bars(connection)
         page = {
             **movement_context,
+            "pair_base": pair_base,
+            "min_pair_n": config.MIN_PAIR_N,
             "manifest": manifest,
             # The dataset's own timestamp, never the wall clock. Two reasons: the reader
             # cares when the data was exported, not when the HTML happened to be rendered;
@@ -285,6 +309,9 @@ def gather(dataset_dir: Path | None = None) -> dict:
                         for _, row in work_modes.iterrows()
                     ],
                     "Work modes",
+                ),
+                "pairs": charts.bar_chart(
+                    pair_bars, "Asked together more often than chance", unit="lift"
                 ),
                 "movement": movement_chart,
                 "coverage": charts.accumulation_chart(

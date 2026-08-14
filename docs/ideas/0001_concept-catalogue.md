@@ -145,7 +145,7 @@ the drift between `reports/site/` and `docs/` becomes impossible rather than dis
 
 | Concept | Value | Why deferred |
 |---|---|---|
-| Technology co-occurrence graph | High visual payoff; one self-join | Wants a denser panel first; lands after Phase 7 |
+| ~~Technology co-occurrence graph~~ | High visual payoff; one self-join | **Shipped 2026-08-14** as a lift ranking rather than a graph: the pair *counts* are just the demand chart drawn twice, so what is published is how far each pair sits from chance, floored at `MIN_PAIR_N` shared vacancies |
 | Salary premium per technology (regression, controlling for seniority/city) | Strongest analytical claim available | Needs `n` per cell that the current panel cannot support |
 | Offer survival curve (Kaplan-Meier on offer lifetime) | Ties data engineering to statistics | Requires several weeks of `first_seen`/`last_seen` |
 | Role-family classifier (backend/frontend/devops/data/QA/support) | Fixes the misleading junior segment | Accepted, but as a rule table — an ML classifier here would be complexity for its own sake |

@@ -37,6 +37,7 @@ _PARAM_DEFAULTS = {
     "work_mode": config.WORK_MODE_REMOTE,
     "series": config.TECHNOLOGY_SERIES,
     "min_coverage": config.MIN_COMPARABLE_COVERAGE,
+    "min_pair_n": config.MIN_PAIR_N,
 }
 
 
