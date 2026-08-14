@@ -29,7 +29,7 @@ in the concept catalogue feeds phases beyond that.
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
 | 5 — Site | **done** — 5.1, 5.2, 5.5, 5.6 shipped; 5.4 shipped as the verbatim-SQL panel; 5.3 and the query playground **dropped 2026-08-12** on the measured bundle size (ADR 0001 amendment) |
 | 6 — Publication | **done** — single CLI path, drift guard, Pages action, README rebuilt finding-first, 6.5 portfolio index merged |
-| 7 — Trends and survival | 7.1-7.2 **done**; 7.3 blocked (no exits in the flow cohort), 7.4 unblocked 2026-08-14 (three exported days) |
+| 7 — Trends and survival | 7.1, 7.2, 7.4 **done**; 7.3 blocked — the flow cohort has recorded no exits |
 
 Two deliberate deviations, recorded so they are not mistaken for oversights:
 
@@ -461,6 +461,15 @@ still require several collection runs across distinct days.
   and seniority. Cohort A is excluded by construction (left truncation — see ADR 0003).
 - **7.4** Technology movement between snapshots, with an explicit note that short series
   are noise — no trend line drawn under a minimum series length.
+  **Done 2026-08-14.** `technology_movement.sql` over the dated series, `analytics/movement.py`
+  for the comparison, a diverging bar chart, and a panel that renders in the state where it
+  draws nothing. Two refusals carry it. Movement is measured on **shares, never counts**:
+  every early count rose because coverage went from 10% to 100% in four days. And a share is
+  only comparable between runs that saw at least `MIN_COMPARABLE_COVERAGE` of the live
+  market — the queue takes every offer posted today plus a draw from the backlog, so a
+  partial sample leans towards recent postings. That leaves two comparable days
+  (2026-08-13, 2026-08-14) against `MIN_SERIES_POINTS = 3`, so the panel currently states
+  what it is waiting for. The chart draws itself on the next day's export.
 
 ## Verification strategy
 
@@ -497,9 +506,10 @@ with right censoring for offers still listed; `stock` is excluded by constructio
 truncation, ADR 0003). The cohort holds 978 offers from three dates and **still no exits**,
 so there is nothing to fit. Wants ~2 weeks from 2026-08-12.
 
-**3. Phase 7.4 — technology movement between snapshots**, drawn from
-`snapshot_dimension_metrics`, with no trend line under `MIN_SERIES_POINTS`. **Unblocked as
-of 2026-08-14**: three exported days now exist (08-12, 08-13, 08-14).
+**3. ~~Phase 7.4 — technology movement between snapshots.~~ Done 2026-08-14.** Three
+exported days exist, but only two of them are *comparable* — the earlier ones were measured
+at 10-63% coverage, and the technology series was renamed with the unit change on 08-13.
+The panel ships with the rule that says so and draws on the third comparable run.
 
 Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
 (regression controlling for seniority and city), and the dataset export that P4

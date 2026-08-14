@@ -139,6 +139,11 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .bar-value, .chart .axis { fill: var(--muted); font-size: 10.5px; }
 .chart .bar { fill: var(--accent); }
 .chart .bar.muted { fill: var(--accent-soft); }
+/* Direction of a move. The colour is a second reading of the sign, never the only one:
+   the signed value is printed beside every bar, so the chart survives being read in
+   greyscale or by someone who cannot separate the two hues. */
+.chart .bar.up { fill: var(--positive); }
+.chart .bar.down { fill: var(--warn); }
 .chart .range { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
 .chart .range.muted { stroke: var(--accent-soft); }
 .chart .range-dot { fill: var(--accent); }
@@ -326,6 +331,24 @@ head (24).
   therefore grows over time without ever increasing load on the source. This is the
   evidence for that claim rather than the claim itself: 5 runs so far.
 </p>
+
+<h2>What moved between runs</h2>
+<p>
+  Counting the same technology twice on different days does not make a trend. Coverage
+  climbed from a tenth of the market to all of it in four days, and over that stretch every
+  count rose because the sample did — so movement is measured as a share of the analysed
+  market, and only between runs that saw at least
+  90% of it. Runs below that line are
+  left out rather than drawn with a caveat.
+</p>
+<figure>
+  <div class="chart-wrap"><p class="empty">2 comparable runs of the 3 needed — this waits for days, not for offers.</p></div>
+  <figcaption>
+Recorded so far: 2026-08-13 to 2026-08-14.    The chart appears once 3 comparable runs exist — the minimum the
+    coverage series draws a line at, for the same reason: two points assert something about
+    the interval between them that two points cannot support.
+  </figcaption>
+</figure>
 
 <h2>Method, and what it cannot tell you</h2>
 <div class="card">
@@ -543,6 +566,65 @@ GROUP BY seniority
 -- The tie-break is not cosmetic: this order reaches the page, and the guard in CI
 -- compares the page byte for byte.
 ORDER BY offers DESC, seniority
+</code></pre>
+</details>
+<details>
+  <summary>technology_movement.sql</summary>
+  <pre><code>-- How each technology&#39;s share of the market moved, run over run.
+--
+-- The trap this query exists to avoid: a technology&#39;s recorded count rose on every early
+-- run, and none of that was the market. Coverage went from 10% to 100% in four days, so
+-- the counts were tracking our sample. Shares are the only comparable quantity here, and
+-- even a share is only comparable between runs that observed a comparable slice: the fetch
+-- queue takes every offer posted today plus a draw from the backlog, so a partial sample
+-- leans towards recent postings and their technologies with it.
+--
+-- Hence `$min_coverage`. A run that observed less than that share of the live market is
+-- left out of the comparison entirely, rather than plotted with a caveat under it. Runs
+-- that recorded no coverage at all are out for the same reason: comparability has to be
+-- established, not assumed.
+--
+-- One run per date — the last comparable one. Several runs share a day, and taking them
+-- all would make a busy day look like a week of movement.
+--
+-- The series is read by name (`$series`) rather than assumed: metric names carry the
+-- population they were measured over and change when it does, and a rename must show up
+-- here as an empty result rather than as a silent splice of two different units.
+WITH run_coverage AS (
+    SELECT
+        s.snapshot_id   AS snapshot_id,
+        s.observed_date AS observed_date,
+        MAX(CASE WHEN st.metric = &#39;coverage_fetched&#39; THEN st.value END) AS analysed,
+        MAX(CASE WHEN st.metric = &#39;frame_live&#39; THEN st.value END)       AS listed
+    FROM snapshots s
+    JOIN snapshot_stats st ON st.snapshot_id = s.snapshot_id
+    GROUP BY s.snapshot_id, s.observed_date
+),
+comparable AS (
+    SELECT snapshot_id, observed_date, analysed / listed AS coverage
+    FROM run_coverage
+    WHERE analysed IS NOT NULL
+      AND listed &gt; 0
+      AND analysed / listed &gt;= $min_coverage
+),
+day_run AS (
+    SELECT observed_date, MAX(snapshot_id) AS snapshot_id
+    FROM comparable
+    GROUP BY observed_date
+)
+SELECT
+    m.dimension     AS technology,
+    d.observed_date AS observed_date,
+    m.value         AS vacancies,
+    m.n             AS analysed_vacancies,
+    m.value / m.n   AS share,
+    c.coverage      AS coverage
+FROM snapshot_dimension_metrics m
+JOIN day_run d    ON d.snapshot_id = m.snapshot_id
+JOIN comparable c ON c.snapshot_id = m.snapshot_id
+WHERE m.metric = $series
+  AND m.n &gt; 0
+ORDER BY m.dimension, d.observed_date
 </code></pre>
 </details>
 <details>

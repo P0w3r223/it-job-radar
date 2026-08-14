@@ -95,6 +95,21 @@ MIN_SERIES_POINTS = 3
 # technology that enters the top twelve next month needs its earlier values to draw a line
 # at all, and a run that has passed cannot be measured again.
 HISTORY_TECHNOLOGY_LIMIT = 30
+# The name of the technology series, in one place: `history` writes it and
+# `technology_movement` reads it, and a series read under a name nobody writes is an empty
+# chart with no error. The name carries its unit, so it changes when the unit does.
+TECHNOLOGY_SERIES = "technology_vacancies"
+
+# --- Movement between runs (phase 7.4) ---------------------------------------
+# Two runs are comparable only if each observed nearly the whole market. Coverage climbed
+# from 10% to 100% over the first four days, and over that stretch a technology's share
+# moves when the *sample* grows — the queue collects every new offer plus a draw from the
+# backlog, so a partial sample leans towards what was posted recently. Below this share a
+# run is left out of the comparison rather than explained away in a caption.
+MIN_COMPARABLE_COVERAGE = 0.9
+# How many movers the chart shows, largest absolute change first. The rest are real but
+# unreadable: forty near-zero bars say less than the ten that moved.
+MOVEMENT_LIMIT = 10
 
 # --- Published artifact (ADR 0002) -------------------------------------------
 # The dataset lives inside the published site: it *is* the artifact the page downloads,
