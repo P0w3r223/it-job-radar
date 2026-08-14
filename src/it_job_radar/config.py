@@ -111,6 +111,14 @@ MIN_COMPARABLE_COVERAGE = 0.9
 # unreadable: forty near-zero bars say less than the ten that moved.
 MOVEMENT_LIMIT = 10
 
+# --- Technologies asked together ---------------------------------------------
+# Vacancies a pair must share before its lift may be published. Lift is least stable where
+# the data is thinnest — two technologies sharing four vacancies can outscore any real
+# stack — so the floor is on the pair itself, not on either technology's own popularity.
+MIN_PAIR_N = 30
+# How many pairs the chart shows.
+PAIR_LIMIT = 12
+
 # --- Published artifact (ADR 0002) -------------------------------------------
 # The dataset lives inside the published site: it *is* the artifact the page downloads,
 # so it is committed rather than generated on the reader's behalf.
