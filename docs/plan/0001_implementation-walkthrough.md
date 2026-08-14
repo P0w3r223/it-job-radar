@@ -1,7 +1,7 @@
 # Implementation Walkthrough — it-job-radar v2
 
-Date: 2026-08-11 (living; last revised 2026-08-12)
-Status: phases 0-6 complete except 6.5
+Date: 2026-08-11 (living; last revised 2026-08-14)
+Status: phases 0-6 complete; 7.1-7.2 done, 7.3-7.4 waiting on observations
 Author: P0w3r223
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0001_browser-side-analytics-stack.md`,
 `docs/adr/0002_published-artifact-policy.md`
@@ -28,8 +28,8 @@ in the concept catalogue feeds phases beyond that.
 | 3 — Analytics layer | **done** |
 | 4 — Export | **done** — redaction and the Parquet writer landed early, with phase 3, because the engine needed something to query |
 | 5 — Site | **done** — 5.1, 5.2, 5.5, 5.6 shipped; 5.4 shipped as the verbatim-SQL panel; 5.3 and the query playground **dropped 2026-08-12** on the measured bundle size (ADR 0001 amendment) |
-| 6 — Publication | 6.1-6.4 **done** (single CLI path, drift guard, Pages action, README rebuilt finding-first with About metadata and ADR pointers); 6.5 waits on the merge |
-| 7 — Trends and survival | blocked on repeated observations |
+| 6 — Publication | **done** — single CLI path, drift guard, Pages action, README rebuilt finding-first, 6.5 portfolio index merged |
+| 7 — Trends and survival | 7.1-7.2 **done**; 7.3 blocked (no exits in the flow cohort), 7.4 unblocked 2026-08-14 (three exported days) |
 
 Two deliberate deviations, recorded so they are not mistaken for oversights:
 
@@ -480,44 +480,26 @@ Its replacement is `pipeline verify` plus the byte-comparison rebuild in CI.
 
 ## Remaining work, in the order I would do it
 
-State at the end of the 2026-08-13 session: **v2, 7.1 and 7.2 are merged to `main`**
-(PR #3, #4, #5, #6), Pages publishes from the workflow, and 6.5 awaits a merge in the index
-repo. PR #7 is merged and the live page serves it. The second run of the day is on
-`chore/collect-2026-08-13-second` (PR #8). 183 tests green; coverage **62.9%**
-(4108 of 6530 adverts, 2855 vacancies). What remains is still waiting on
-**days, not code**: the flow cohort has recorded no exits at all, so 7.3 cannot be fitted.
+State after the 2026-08-14 run: **v2, 6.5, 7.1 and 7.2 are done and merged**; Pages
+publishes from the workflow and the index repo carries the A2 entry. 191 tests green;
+attributes known for **6570 of 6571 listed adverts (100%)**, 4007 distinct vacancies.
+Everything left waits on **days, not code**.
 
 ### Next session, in order
 
-**1. `pipeline observe`, first thing.** Not ceremony: the flow cohort is the only one that
-can carry survival analysis, and it only grows by being observed. Three dates exist so far
-(2026-08-11, 2026-08-12, 2026-08-13); 7.3 wants roughly two weeks. A `collect` after it is
-optional but cheap, and every run tightens the junior finding further — **read the `new`
-count `observe` prints and set `--budget` above it**, or the inflow census silently becomes
-a sample of the offers that survived the queue (open question 2). Since
-7.1 landed, `export` after a run is no longer optional book-keeping — it is what records
-that day's point, and a day not exported is a hole in every series.
+**1. `pipeline observe`, first thing**, then `collect` with `--budget` above the `new` count
+it prints — otherwise the inflow census silently becomes a sample of what survived the
+queue. `export` afterwards is not book-keeping: it records that day's series point, and a
+day not exported is a permanent hole.
 
-**2. ~~Switch GitHub Pages to the workflow source.~~ Done 2026-08-12.** The deploy on the
-merge of PR #3 failed because the repository was still on `build_type: legacy` — exactly the
-order this step warned about. After the switch, the next push deployed cleanly and the live
-page serves the dataset including the series table.
+**2. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
+with right censoring for offers still listed; `stock` is excluded by construction (left
+truncation, ADR 0003). The cohort holds 978 offers from three dates and **still no exits**,
+so there is nothing to fit. Wants ~2 weeks from 2026-08-12.
 
-**3. Portfolio index (6.5) — [PR #20](https://github.com/P0w3r223/current_projects/pull/20),
-awaiting merge.** Both acts done: the A2 row and the "Live now" entry rewritten around the
-presence/attributes split, the enforced contract and one verbatim SQL definition per metric
-(explicitly **not** browser-side analytics, which ADR 0001 rejects), and the submodule
-pointer bumped to the merged v2.
-
-**4. Phase 7.3 — survival on the flow cohort.** Kaplan-Meier over `first_seen`/`last_seen`
-with right censoring for offers still listed. Cohort A (`stock`) is excluded by construction
-— left truncation, see ADR 0003. Wants ~2 weeks of observations from 2026-08-12; the flow
-cohort currently holds 210 offers and **no exits at all**, so there is nothing yet to fit.
-
-**5. Phase 7.4 — technology movement between snapshots**, drawn from
-`snapshot_dimension_metrics`, with no trend line under `MIN_SERIES_POINTS` — the rule 7.2
-already implements and this phase inherits. Needs at least three exported runs on distinct
-days before it can draw anything, so it is the last of the three to unblock.
+**3. Phase 7.4 — technology movement between snapshots**, drawn from
+`snapshot_dimension_metrics`, with no trend line under `MIN_SERIES_POINTS`. **Unblocked as
+of 2026-08-14**: three exported days now exist (08-12, 08-13, 08-14).
 
 Then the concept-catalogue backlog: technology co-occurrence, salary premium by technology
 (regression controlling for seniority and city), and the dataset export that P4
