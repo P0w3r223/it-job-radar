@@ -149,6 +149,31 @@
   evidence for that claim rather than the claim itself: {{ runs_recorded }} runs so far.
 </p>
 
+<h2>What moved between runs</h2>
+<p>
+  Counting the same technology twice on different days does not make a trend. Coverage
+  climbed from a tenth of the market to all of it in four days, and over that stretch every
+  count rose because the sample did — so movement is measured as a share of the analysed
+  market, and only between runs that saw at least
+  {{ '%.0f%%' | format(min_comparable_coverage * 100) }} of it. Runs below that line are
+  left out rather than drawn with a caveat.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.movement }}</div>
+  <figcaption>
+    {% if movement_days >= movement_min_days %}
+    Change in each technology's share of analysed vacancies between {{ movement_first }} and
+    {{ movement_last }}, largest move first, with the two counts behind every bar. A share
+    can fall while the count rises: the market grew around it.
+    {% else %}
+    {% if movement_first %}Recorded so far: {{ movement_first }} to {{ movement_last }}.{% endif %}
+    The chart appears once {{ movement_min_days }} comparable runs exist — the minimum the
+    coverage series draws a line at, for the same reason: two points assert something about
+    the interval between them that two points cannot support.
+    {% endif %}
+  </figcaption>
+</figure>
+
 <h2>Method, and what it cannot tell you</h2>
 <div class="card">
   <p>

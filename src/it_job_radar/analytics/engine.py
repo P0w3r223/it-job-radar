@@ -35,6 +35,8 @@ _PARAM_DEFAULTS = {
     "currency": "PLN",
     "city": config.FOCUS_CITY,
     "work_mode": config.WORK_MODE_REMOTE,
+    "series": config.TECHNOLOGY_SERIES,
+    "min_coverage": config.MIN_COMPARABLE_COVERAGE,
 }
 
 
