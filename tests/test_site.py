@@ -277,3 +277,24 @@ def test_range_chart_survives_a_missing_interval():
         [charts.Range("junior", 8000, 11000, float("nan"), float("nan"), 1, muted=True)], "t"
     )
     assert "n=1" in svg and "nan" not in svg.lower()
+
+
+def test_every_table_scrolls_inside_its_own_box(site):
+    """A table is never narrower than its columns need, so `width: 100%` cannot rescue one
+    whose contents will not wrap — it takes the page sideways instead.
+
+    This page does not overflow at a 375px viewport today; the wrapper is preventive, and it is
+    here because the figures come from a snapshot. A longer label or a wider number is a change
+    to the data, not to the layout, and nothing else would notice. Three sibling projects had
+    exactly this defect measured on them, all three with `overflow-x` already present on their
+    charts and none of it on their tables.
+    """
+    _, dataset = site
+    html = build.render(dataset)
+
+    assert html.count("<table") == html.count('<div class="table-wrap">'), (
+        "a table is published outside a scroll container"
+    )
+    assert re.search(r"\.table-wrap\s*\{[^}]*overflow-x:\s*auto", html), (
+        "the wrapper is inert without the rule that makes it scroll"
+    )
