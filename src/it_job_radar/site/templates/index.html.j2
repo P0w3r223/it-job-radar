@@ -157,6 +157,7 @@
 </figure>
 
 <h2>How much of the market this covers</h2>
+<div class="table-wrap">
 <table>
   <tbody>
     <tr><th>Offers listed by the source today</th><td class="num">{{ manifest.coverage.offers_listed }}</td></tr>
@@ -174,6 +175,7 @@
     <tr><th>Snapshot age</th><td class="num">{{ manifest.quality.freshness_days | int }} days</td></tr>
   </tbody>
 </table>
+</div>
 <figure>
   <div class="chart-wrap">{{ charts.coverage }}</div>
   <figcaption>
