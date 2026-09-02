@@ -153,6 +153,11 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .series-dot.observed { fill: var(--bg); stroke: var(--accent); stroke-width: 1.5; }
 .chart .axis-line { stroke: var(--border); stroke-width: 1; }
 
+/* Tables scroll inside their own box, like the charts above. A table is never narrower than
+   its columns need, so `width: 100%` cannot rescue one whose contents will not wrap — and the
+   figures here come from a snapshot, so the width is a property of the data rather than of the
+   layout. Wrapping is preventive: measured at a 375px viewport this page does not overflow. */
+.table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
 th { font-weight: 600; color: var(--muted); font-size: 0.82rem; }
