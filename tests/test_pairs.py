@@ -148,7 +148,8 @@ def test_the_bar_states_a_lift_rather_than_rounding_it_into_a_count():
 def test_the_panel_reaches_the_page_with_the_population_its_lift_was_measured_over(workspace):
     conn, out = workspace
     vacancies = config.MIN_PAIR_N
-    _publish(conn, [_offer(f"o{i}", ["python", "sql"], company=f"C{i}") for i in range(vacancies)], out)
+    offers = [_offer(f"o{i}", ["python", "sql"], company=f"C{i}") for i in range(vacancies)]
+    _publish(conn, offers, out)
 
     page = build.gather(out)
 

@@ -12,7 +12,7 @@ DuckDB-WASM in the browser.
 from __future__ import annotations
 
 import re
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 import duckdb
@@ -50,7 +50,7 @@ def available() -> tuple[str, ...]:
     return tuple(sorted(path.stem for path in QUERY_DIR.glob("*.sql")))
 
 
-@lru_cache(maxsize=None)
+@cache
 def query_text(name: str) -> str:
     """The verbatim SQL for a named query — comments included, since they are the docs."""
     path = QUERY_DIR / f"{name}.sql"

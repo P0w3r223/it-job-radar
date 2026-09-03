@@ -30,6 +30,7 @@ dev = [
     # transitively: a test that reasons about the dependency declaration should not itself
     # depend on an undeclared one.
     "packaging>=24,<27",
+    "ruff>=0.6,<1",
     "jupyterlab>=4.2,<5",
     # The notebook draws its own figures; the published site renders inline SVG and
     # needs no plotting library at runtime.
@@ -38,6 +39,33 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# The notebook is an exploratory record of what was run, kept for the reasoning rather than
+# as maintained code; linting it would only invite edits that make its output a fiction.
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# The multiplication sign and the en dash below are the characters the *page* prints, not
+# typos for `x` and `-`. A lift is rendered "4.6×" and a salary range "8 000–12 000"; both
+# are read by a human off an SVG, where the Latin letter and the hyphen are the wrong
+# glyphs. The rule stays on everywhere else, because an ambiguous codepoint in code —
+# rather than in a string bound for the page — would be a real bug.
+"src/it_job_radar/site/build.py" = ["RUF001"]
+"src/it_job_radar/site/charts.py" = ["RUF001"]
+# Same rule, opposite side of the same string: these assert on the rendered SVG, and an
+# expectation written with a Latin `x` would match nothing the chart ever produces. The
+# comment carries the arithmetic that explains the expected lift, in the notation the
+# arithmetic is written in.
+"tests/test_pairs.py" = ["RUF001", "RUF003"]
+# A docstring recording that an employer's hourly rate ×160 h comes to 2.3 M a month —
+# prose about a multiplication, where the operator is the correct symbol.
+"src/it_job_radar/migrations.py" = ["RUF002"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

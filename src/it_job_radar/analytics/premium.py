@@ -126,7 +126,7 @@ def estimate(
         name: count for name, count in _counts(usable["technologies"]).items() if count >= min_n
     }
     if usable.empty or not technology_counts:
-        return Fit(premiums=(), vacancies=int(len(usable)), controls=())
+        return Fit(premiums=(), vacancies=len(usable), controls=())
 
     technologies = sorted(technology_counts)
     seniorities = _controls(usable["seniority"], min_control_n)
@@ -165,6 +165,6 @@ def estimate(
     premiums.sort(key=lambda premium: (-abs(premium.percent), premium.technology))
     return Fit(
         premiums=tuple(sorted(premiums[:limit], key=lambda premium: -premium.percent)),
-        vacancies=int(len(usable)),
+        vacancies=len(usable),
         controls=tuple(seniorities + work_modes),
     )

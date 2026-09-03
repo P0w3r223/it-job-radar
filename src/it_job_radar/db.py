@@ -193,7 +193,8 @@ def record_frame(
     conn.execute(
         "UPDATE sitemap_offers SET "
         "  last_seen = :today, "
-        "  offer_url = (SELECT b.offer_url FROM frame_batch b WHERE b.offer_id = sitemap_offers.offer_id), "
+        "  offer_url = (SELECT b.offer_url FROM frame_batch b "
+        "              WHERE b.offer_id = sitemap_offers.offer_id), "
         "  gaps = gaps + (CASE WHEN last_seen < :previous THEN 1 ELSE 0 END) "
         "WHERE offer_id IN (SELECT offer_id FROM frame_batch)",
         {"today": observed_date, "previous": previous_date or observed_date},
@@ -397,7 +398,9 @@ def offer_titles(conn: sqlite3.Connection) -> list[tuple[str, str | None, str | 
     ]
 
 
-def offer_identities(conn: sqlite3.Connection) -> list[tuple[str, str | None, str | None, str | None]]:
+def offer_identities(
+    conn: sqlite3.Connection,
+) -> list[tuple[str, str | None, str | None, str | None]]:
     """``(offer_id, title, company, current vacancy_key)`` for every stored offer."""
     return [
         (row[0], row[1], row[2], row[3])

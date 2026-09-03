@@ -209,7 +209,8 @@ def accumulation_chart(
         f"{_thousands(last.value)} ({share:.1%})</text>"
     )
     note = f"{len(points)} runs" if len(points) != 1 else "1 run"
-    drawn = "" if len(points) >= min_points else " — too short for a line, so the points stand alone"
+    too_short = " — too short for a line, so the points stand alone"
+    drawn = "" if len(points) >= min_points else too_short
     parts.append(
         f'<text class="axis" x="{_SERIES_LEFT}" y="{_SERIES_HEIGHT - 6}">'
         f"{_text(note)}, {_text(unit)} with attributes collected{_text(drawn)}</text>"

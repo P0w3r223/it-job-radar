@@ -97,7 +97,7 @@ def test_role_filter_separates_support_from_engineering(dataset):
     """The distinction behind the site's headline finding."""
     _, connection = dataset
     split = engine.run("role_family_distribution", connection=connection, seniority="junior")
-    assert dict(zip(split["role_family"], split["offers"])) == {"support": 1}
+    assert dict(zip(split["role_family"], split["offers"], strict=True)) == {"support": 1}
 
 
 # --- Statistics --------------------------------------------------------------

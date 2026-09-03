@@ -58,7 +58,8 @@ def test_parse_offer_contracts_carry_salary_kind():
 
 def test_parse_offer_invalid_returns_none():
     assert theprotocol.parse_offer("<html>no next data</html>") is None
-    assert theprotocol.parse_offer('<script id="__NEXT_DATA__" type="x">{"props":{}}</script>') is None
+    payload = '<script id="__NEXT_DATA__" type="x">{"props":{}}</script>'
+    assert theprotocol.parse_offer(payload) is None
 
 
 def test_parse_offer_without_id_returns_none():

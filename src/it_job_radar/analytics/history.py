@@ -99,7 +99,10 @@ def _vacancy_count(connection) -> int:
     would shrink every published figure as offers left the frame.
     """
     frame = connection.execute(
-        "SELECT COUNT(DISTINCT COALESCE(o.vacancy_id, o.offer_id)) FROM offers o JOIN sitemap_offers f ON f.offer_id = o.offer_id AND f.last_seen = (SELECT MAX(last_seen) FROM sitemap_offers)"
+        "SELECT COUNT(DISTINCT COALESCE(o.vacancy_id, o.offer_id)) "
+        "FROM offers o "
+        "JOIN sitemap_offers f ON f.offer_id = o.offer_id "
+        "AND f.last_seen = (SELECT MAX(last_seen) FROM sitemap_offers)"
     ).fetchdf()
     return int(frame.iloc[0, 0])
 
@@ -127,7 +130,12 @@ def _median_rows(connection) -> list[tuple]:
                 if pd.isna(value):
                     continue  # a stratum can disclose a floor and no ceiling
                 rows.append(
-                    (f"vacancy_salary_median_{bound}_{kind}", str(row["seniority"]), float(value), n)
+                    (
+                        f"vacancy_salary_median_{bound}_{kind}",
+                        str(row["seniority"]),
+                        float(value),
+                        n,
+                    )
                 )
     return rows
 

@@ -43,7 +43,9 @@ def test_the_query_reads_the_metric_names_the_pipeline_writes(tmp_path):
     reader which numbers the figure is made of, and the page shows this SQL verbatim.
     """
     conn = db.connect(tmp_path / "bound.db")
-    snapshot_id = db.start_snapshot(conn, config.SNAPSHOT_COLLECT, "2026-08-12", "2026-08-12T10:00:00")
+    snapshot_id = db.start_snapshot(
+        conn, config.SNAPSHOT_COLLECT, "2026-08-12", "2026-08-12T10:00:00"
+    )
     pipeline._record_frame_metrics(
         conn, snapshot_id, "2026-08-12", db.FrameDelta(live=6603, new=10, disappeared=2, returned=0)
     )
@@ -67,7 +69,9 @@ def test_runs_come_back_in_run_order(dataset):
 
 def test_a_run_missing_its_base_is_left_out_rather_than_drawn(tmp_path):
     conn = db.connect(tmp_path / "partial.db")
-    snapshot_id = db.start_snapshot(conn, config.SNAPSHOT_OBSERVE, "2026-08-12", "2026-08-12T10:00:00")
+    snapshot_id = db.start_snapshot(
+        conn, config.SNAPSHOT_OBSERVE, "2026-08-12", "2026-08-12T10:00:00"
+    )
     db.write_snapshot_stat(conn, snapshot_id, "2026-08-12", "coverage_fetched", 100)
     out = tmp_path / "dataset"
     export.publish(conn, out)
