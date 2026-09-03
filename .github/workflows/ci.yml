@@ -17,6 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The published dataset names the commits that produced it, and the test that
+          # checks those hashes still resolve needs history to resolve them against. At
+          # the default depth of 1 it can only skip, which would have let the rewrite
+          # orphan fifteen of them exactly as it did.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
