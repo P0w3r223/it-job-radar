@@ -165,5 +165,5 @@ reasoning, including why No Fluff Jobs and justjoin.it were rejected.
 
 ## License
 
-MIT. Job data © theprotocol.it (Grupa Pracuj) — collected respectfully for educational,
-non-commercial use.
+MIT — see [LICENSE](LICENSE). Job data © theprotocol.it (Grupa Pracuj) — collected
+respectfully for educational, non-commercial use.
