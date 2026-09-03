@@ -137,7 +137,9 @@ def classify_role_family(title: str | None, rules: RoleRules) -> str:
     return config.ROLE_FAMILY_OTHER
 
 
-def normalize_technology(name: str, alias_index: dict[str, str], threshold: int = _FUZZY_THRESHOLD) -> str:
+def normalize_technology(
+    name: str, alias_index: dict[str, str], threshold: int = _FUZZY_THRESHOLD
+) -> str:
     """Map a raw technology name to its canonical form (exact alias → fuzzy → lowercased)."""
     key = (name or "").strip().lower()
     if not key:
@@ -270,7 +272,9 @@ def normalize_offer(offer: dict, normalization: Normalization) -> dict:
         "offer_url": offer.get("offer_url"),
         "locations": offer.get("locations", []),
         "seniority": [s for s in (normalize_seniority(v) for v in offer.get("seniority", [])) if s],
-        "work_modes": [m for m in (normalize_work_mode(v) for v in offer.get("work_modes", [])) if m],
+        "work_modes": [
+            m for m in (normalize_work_mode(v) for v in offer.get("work_modes", [])) if m
+        ],
         "technologies": {
             "expected": normalize_technologies(offer.get("tech_expected", []), alias_index),
             "optional": normalize_technologies(offer.get("tech_optional", []), alias_index),

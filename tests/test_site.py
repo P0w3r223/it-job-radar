@@ -28,7 +28,10 @@ def _offer(offer_id, seniority, monthly=None, family="backend", title="Java Engi
         "offer_url": f"https://theprotocol.it/x,oferta,{offer_id}", "role_family": family,
         "locations": [{"city": config.FOCUS_CITY, "region": "dolnośląskie"}],
         "seniority": [seniority], "work_modes": ["remote"],
-        "technologies": {"expected": normalize.normalize_technologies(["python"], {}), "optional": []},
+        "technologies": {
+            "expected": normalize.normalize_technologies(["python"], {}),
+            "optional": [],
+        },
         "salaries": salaries,
     }
 

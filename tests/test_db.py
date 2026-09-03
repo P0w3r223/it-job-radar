@@ -91,7 +91,9 @@ def test_reresolving_leaves_offers_the_change_did_not_touch_alone(tmp_path):
     bystander = _offer("a2")
     db.write_offers(conn, [affected, bystander], "2026-07-17")
 
-    targets = [(rowid, "ci/cd") for rowid, raw, _ in db.technology_names(conn) if "ci" in raw.lower()]
+    targets = [
+        (rowid, "ci/cd") for rowid, raw, _ in db.technology_names(conn) if "ci" in raw.lower()
+    ]
     db.set_technologies(conn, targets)
 
     untouched = db.read_table(conn, "offer_technologies").query("offer_id == 'a2'")

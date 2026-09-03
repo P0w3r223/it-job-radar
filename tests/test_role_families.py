@@ -52,7 +52,8 @@ def test_order_decides_overlapping_titles(rules):
     # bare "administrator" belongs to infrastructure, but only after data and erp have looked
     assert normalize.classify_role_family("Database Administrator", rules) == "data"
     assert normalize.classify_role_family("Administrator SAP Basis", rules) == "erp"
-    assert normalize.classify_role_family("Administrator wewnętrznych systemów", rules) == "infrastructure"
+    family = normalize.classify_role_family("Administrator wewnętrznych systemów", rules)
+    assert family == "infrastructure"
 
 
 def test_the_desk_and_the_machines_are_different_families(rules):
@@ -66,7 +67,8 @@ def test_the_desk_and_the_machines_are_different_families(rules):
     # An overlap resolved deliberately: "informatyk" is the Polish word for the IT person at
     # the desk, but a title that also says "administrator" is describing the machines.
     assert normalize.classify_role_family("Informatyk", rules) == "support"
-    assert normalize.classify_role_family("Informatyk - Administrator IT", rules) == "infrastructure"
+    family = normalize.classify_role_family("Informatyk - Administrator IT", rules)
+    assert family == "infrastructure"
 
 
 def test_java_pattern_does_not_swallow_javascript(rules):

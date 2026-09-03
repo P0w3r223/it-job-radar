@@ -15,7 +15,11 @@ def _offer(offer_id="a1", **overrides):
     offer = {
         "offer_id": offer_id, "title": "Backend", "company": "ACME", "offer_url": "u",
         "role_family": "backend", "locations": [], "seniority": ["mid"],
-        "work_modes": ["remote"], "technologies": {"expected": normalize.normalize_technologies(["python"], {}), "optional": []},
+        "work_modes": ["remote"],
+        "technologies": {
+            "expected": normalize.normalize_technologies(["python"], {}),
+            "optional": [],
+        },
         "salaries": [{
             "contract_type": "B2B", "kind": "b2b", "currency": "PLN",
             "salary_from": 100, "salary_to": 150, "time_unit": "godzinowo",

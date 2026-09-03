@@ -121,6 +121,7 @@ A passed run cannot be measured again, so the series starts at the first export.
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt   # Windows
 pytest
+ruff check .
 
 # presence census — one cheap request, the whole population frame
 .venv/Scripts/python -m it_job_radar.pipeline observe

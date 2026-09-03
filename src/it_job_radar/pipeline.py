@@ -17,13 +17,14 @@ in what those offers actually contain.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import subprocess
 import sys
 from datetime import date, datetime
 
 from it_job_radar import config, db, export, normalize, quality, sampling
-from it_job_radar.site import build as site_build
 from it_job_radar.collect import theprotocol
+from it_job_radar.site import build as site_build
 
 # The metric whose detail is the working end of the report: the names to curate next.
 _COVERAGE_METRIC = "stored_alias_coverage_rate"
@@ -317,7 +318,8 @@ def quality_report(conn=None) -> list[quality.Violation]:
         metrics = quality.snapshot_metrics(conn, today)
         print(f"[quality] state on {today}")
         for metric, measured in metrics.items():
-            suffix = f"  ({measured.detail})" if metric != _COVERAGE_METRIC and measured.detail else ""
+            detailed = metric != _COVERAGE_METRIC and measured.detail
+            suffix = f"  ({measured.detail})" if detailed else ""
             print(f"  {metric:<30} {measured.value:>8.3f}{suffix}")
 
         unmatched = metrics[_COVERAGE_METRIC].detail
@@ -343,10 +345,10 @@ def quality_report(conn=None) -> list[quality.Violation]:
 
 def main(argv: list[str] | None = None) -> None:
     # Windows consoles default to cp1250; force UTF-8 so Polish characters print.
-    try:
+    # Suppressed rather than handled: a stream that cannot be reconfigured — a pipe, or a
+    # replacement without the method — is not a failure, it is a stream that needs no fixing.
+    with contextlib.suppress(AttributeError, ValueError):
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
 
     parser = argparse.ArgumentParser(description="it-job-radar pipeline")
     sub = parser.add_subparsers(dest="command", required=True)

@@ -174,7 +174,9 @@ def snapshot_metrics(
         )
     ]
     latest = conn.execute("SELECT MAX(collected_date) FROM offers").fetchone()[0]
-    freshness = (date.fromisoformat(observed_date) - date.fromisoformat(latest)).days if latest else -1
+    freshness = (
+        (date.fromisoformat(observed_date) - date.fromisoformat(latest)).days if latest else -1
+    )
 
     coverage = stored_alias_coverage(conn, aliases)
     unmatched = ", ".join(

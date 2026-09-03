@@ -31,7 +31,8 @@ def _legacy_database(path):
     conn = sqlite3.connect(path)
     conn.executescript(_LEGACY_SCHEMA)
     conn.execute(
-        "INSERT INTO offers (offer_id, title, collected_date) VALUES ('a1', 'Backend', '2026-07-17')"
+        "INSERT INTO offers (offer_id, title, collected_date) "
+        "VALUES ('a1', 'Backend', '2026-07-17')"
     )
     conn.executemany(
         "INSERT INTO offer_technologies (offer_id, technology, required) VALUES (?, ?, ?)",
@@ -109,7 +110,8 @@ def test_duplicate_technology_rows_are_collapsed_once_and_then_forbidden(tmp_pat
 
     conn = db.connect(path)
     rows = conn.execute(
-        "SELECT technology, COUNT(*) FROM offer_technologies GROUP BY technology ORDER BY technology"
+        "SELECT technology, COUNT(*) FROM offer_technologies "
+        "GROUP BY technology ORDER BY technology"
     ).fetchall()
     assert rows == [("ci / cd", 1), ("python", 1)]
 

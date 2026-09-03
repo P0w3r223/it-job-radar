@@ -89,6 +89,7 @@ docs/research/             # data-source research + legal/ethics
 ```bash
 .venv/Scripts/python -m pip install -r requirements.txt
 pytest
+ruff check .          # CI runs this too; config in pyproject.toml
 
 # record the population frame — one cheap request, presence only
 .venv/Scripts/python -m it_job_radar.pipeline observe

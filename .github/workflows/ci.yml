@@ -35,6 +35,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev] -c constraints.txt
+      # Pinned in constraints.txt like everything else: a floating linter reddens a commit
+      # that changed nothing the day it releases a new rule, which is the same "fails for a
+      # reason no commit caused" this file already refuses for numpy.
+      - name: Lint
+        run: ruff check .
       - name: Run tests
         run: pytest
 

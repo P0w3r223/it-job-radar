@@ -120,7 +120,8 @@ def test_coverage_counts_known_attributes_against_the_live_base(tmp_path):
 def test_reconcile_marks_offers_collected_before_the_frame_existed(tmp_path):
     conn = db.connect(tmp_path / "t.db")
     conn.execute(
-        "INSERT INTO offers (offer_id, title, collected_date) VALUES ('known', 'Backend', '2026-07-17')"
+        "INSERT INTO offers (offer_id, title, collected_date) "
+        "VALUES ('known', 'Backend', '2026-07-17')"
     )
     conn.commit()
     db.record_frame(conn, _entries(["known", "unknown"]), "2026-08-11")

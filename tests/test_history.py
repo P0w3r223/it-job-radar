@@ -12,7 +12,13 @@ from it_job_radar import config, db, export, normalize, quality
 from it_job_radar.analytics import engine, history, stats
 
 
-def _offer(offer_id, seniority="senior", technologies=("java",), salary=None, title="Backend Engineer"):
+def _offer(
+    offer_id,
+    seniority="senior",
+    technologies=("java",),
+    salary=None,
+    title="Backend Engineer",
+):
     return {
         "offer_id": offer_id, "title": title, "company": "ACME",
         "offer_url": f"https://theprotocol.it/x,oferta,{offer_id}",

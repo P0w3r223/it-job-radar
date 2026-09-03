@@ -178,7 +178,10 @@ def _movement(connection) -> tuple[str, dict]:
         f"{'run' if len(comparison.days) == 1 else 'runs'} of the "
         f"{config.MIN_SERIES_POINTS} needed — this waits for days, not for offers."
     )
-    return charts.movement_chart(changes, "How each technology's share moved", waiting, footer), context
+    chart = charts.movement_chart(
+        changes, "How each technology's share moved", waiting, footer
+    )
+    return chart, context
 
 
 def _role_bars(frame: pd.DataFrame, total: int) -> list[charts.Bar]:

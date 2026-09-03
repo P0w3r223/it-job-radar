@@ -157,7 +157,9 @@ def test_a_run_that_saw_a_tenth_of_the_market_is_not_compared_with_one_that_saw_
 
 def test_a_run_with_no_recorded_coverage_cannot_establish_comparability(tmp_path):
     conn = db.connect(tmp_path / "uncovered.db")
-    snapshot_id = db.start_snapshot(conn, config.SNAPSHOT_COLLECT, "2026-08-14", "2026-08-14T10:00:00")
+    snapshot_id = db.start_snapshot(
+        conn, config.SNAPSHOT_COLLECT, "2026-08-14", "2026-08-14T10:00:00"
+    )
     db.write_dimension_metrics(conn, snapshot_id, "2026-08-14", [(_SERIES, "python", 10, 100)])
     out = tmp_path / "dataset"
     export.publish(conn, out)
