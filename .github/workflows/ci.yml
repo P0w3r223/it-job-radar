@@ -84,8 +84,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
+      # `docs/.nojekyll` is committed and v4 stopped including hidden files, so the bump
+      # silently dropped it: the file is in the repository and 404s on the live site.
+      # Inert while Pages serves this artifact — that path never runs Jekyll at all — but
+      # restoring the artifact byte-for-byte costs one line and needs no argument about
+      # whether the file is necessary. Flip the Pages source back to the branch, as seven
+      # siblings here serve, and the file would matter again.
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs
+          include-hidden-files: true
       - id: deployment
         uses: actions/deploy-pages@v5
