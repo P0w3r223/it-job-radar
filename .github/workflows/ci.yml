@@ -22,6 +22,10 @@ jobs:
           # checks those hashes still resolve needs history to resolve them against. At
           # the default depth of 1 it can only skip, which would have let the rewrite
           # orphan fifteen of them exactly as it did.
+          #
+          # Deleting this line no longer costs a silent skip: `_require_history` fails
+          # instead of skipping whenever `CI` is set, so the guard and the checkout depth
+          # are coupled by a red test rather than by this comment.
           fetch-depth: 0
       - uses: actions/setup-python@v7
         with:

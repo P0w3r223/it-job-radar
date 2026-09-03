@@ -16,7 +16,9 @@ data/raw/*
 *.sqlite
 *.sqlite3
 
-# Generated Pages report
+# Generated Pages report. `pipeline site --out build/site` and the CI drift job both write
+# here; the published page is the copy in docs/, which IS committed.
+build/
 
 # IDE / editor
 .idea/
