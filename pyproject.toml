@@ -25,6 +25,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3,<9",
+    # `test_committed_dataset` reads this file's own pyarrow requirement and checks the
+    # published Parquet against it. Declared rather than taken from whatever pulled it in
+    # transitively: a test that reasons about the dependency declaration should not itself
+    # depend on an undeclared one.
+    "packaging>=24,<27",
     "jupyterlab>=4.2,<5",
     # The notebook draws its own figures; the published site renders inline SVG and
     # needs no plotting library at runtime.
