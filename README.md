@@ -36,7 +36,7 @@ what keeps the panel from skewing toward long-lived postings.
 ### An advert is not a job
 
 One employer publishes a single role once per city — 18 adverts for the same Cloud Data
-Engineer. **39% of adverts repeat a job this way**, so counting adverts lets posting habits
+Engineer. **38.8% of adverts repeat a job this way**, so counting adverts lets posting habits
 stand in for demand, and the bias grows with the sample. Deduplicating moved `azure` from
 third place in the technology ranking to seventh.
 
@@ -139,7 +139,7 @@ ruff check .
 
 ## Limitations
 
-- **Coverage.** Attributes are known for 6570 of 6571 listed adverts (100%), which is
+- **Coverage.** Attributes are known for 6570 of 6571 listed adverts (99.98%), which is
   4007 distinct vacancies. Presence is complete; attributes remain a bounded sample by
   design, and the page says so beside the figures that depend on it.
 - **Thin and imprecise figures are labelled, not deleted** — one seniority level below the
