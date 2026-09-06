@@ -14,7 +14,7 @@
      rather than as a quiet bar. #5b93e4 is 3.12:1 here and still 1.66:1 from --accent, which
      is what keeps muted legible *as* muted. */
   --accent-soft: #5b93e4;
-  --positive: #059669;
+  --positive: #047857;
   --warn: #b45309;
   --radius: 10px;
 }
