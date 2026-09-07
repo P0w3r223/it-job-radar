@@ -2,7 +2,7 @@
 
 Date: 2026-08-11 (living; last revised 2026-08-14)
 Status: phases 0-6 complete; 7.1-7.2 done, 7.3-7.4 waiting on observations
-Author: P0w3r223
+Author: Piotr Cząstkiewicz
 Related to: `docs/ideas/0001_concept-catalogue.md`, `docs/adr/0001_browser-side-analytics-stack.md`,
 `docs/adr/0002_published-artifact-policy.md`
 
