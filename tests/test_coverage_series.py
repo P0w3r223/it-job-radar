@@ -107,7 +107,7 @@ def test_the_chart_states_the_ceiling_it_is_not_drawn_against(dataset):
     _, out = dataset
     svg = str(build.gather(out)["charts"]["coverage"])
 
-    assert "of 6 603 listed" in svg
+    assert "of 6\u202f603 listed" in svg
     assert "387 (5.9%)" in svg  # the share is the honest reading of the rescaled line
 
 

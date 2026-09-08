@@ -352,7 +352,7 @@ def gather(dataset_dir: Path | None = None) -> dict:
                     coverage_points,
                     "Coverage accumulated run by run",
                     reference=coverage_ceiling,
-                    reference_label=f"{coverage_ceiling:,.0f}".replace(",", " ") + " listed",
+                    reference_label=charts.thousands(coverage_ceiling) + " listed",
                 ),
             },
             "runs_recorded": len(coverage_points),
@@ -383,7 +383,7 @@ def _kpis(manifest: dict, vacancies: int) -> list[Kpi]:
         # The live vacancy count, not `rows.offers`: that row count includes adverts the
         # source has since retired and the per-city copies of one job, so it answered a
         # question no figure below it asks (ADR 0004).
-        Kpi("Vacancies analysed", f"{vacancies:,}".replace(",", " "),
+        Kpi("Vacancies analysed", charts.thousands(vacancies),
             "distinct live jobs, attributes collected and normalized"),
         Kpi("Of the live market", f"{coverage['share']:.1%}",
             f"{coverage['attributes_known']} of {coverage['offers_listed']} listed today"),
