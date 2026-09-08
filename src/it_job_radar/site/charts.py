@@ -89,8 +89,18 @@ def _text(value) -> str:
     return escape(str(value), quote=True)
 
 
-def _thousands(value: float) -> str:
-    return f"{value:,.0f}".replace(",", " ")
+def thousands(value: float) -> str:
+    """A count, grouped with U+202F -- `0007` §5 clause 8, and this page's one formatter.
+
+    Written as an escape rather than as the character, because the character is invisible
+    in a diff, a terminal and a `grep`: `car-price-ml` carried two byte-identical copies of
+    this function that differed only in which space they held, and no reader could see it.
+
+    Public, and `site/build.py` calls it. It was private and the coverage label and the
+    vacancy tile each inlined their own copy of the format string -- the same drift one
+    import removes.
+    """
+    return f"{value:,.0f}".replace(",", "\u202f")
 
 
 def _svg(width: int, height: int, title: str, body: str) -> str:
@@ -122,7 +132,7 @@ def bar_chart(bars: list[Bar], title: str, unit: str = "offers") -> str:
             f'<rect class="{classes}" x="{_LABEL_WIDTH}" y="{y + 3}" '
             f'width="{width:.1f}" height="{_ROW_HEIGHT - 9}" rx="2"></rect>'
             f'<text class="bar-value" x="{_LABEL_WIDTH + width + 6:.1f}" y="{y + 13}">'
-            f"{_text(bar.value_text) if bar.value_text else _thousands(bar.value)}"
+            f"{_text(bar.value_text) if bar.value_text else thousands(bar.value)}"
             f"{_text(note)}</text>"
         )
     return _svg(_WIDTH, height, f"{title} ({unit})", "".join(parts))
@@ -206,7 +216,7 @@ def accumulation_chart(
     parts.append(
         f'<text class="bar-value" x="{x_of(len(points) - 1) + 10:.1f}" '
         f'y="{y_of(last.value) + 4:.1f}">'
-        f"{_thousands(last.value)} ({share:.1%})</text>"
+        f"{thousands(last.value)} ({share:.1%})</text>"
     )
     note = f"{len(points)} runs" if len(points) != 1 else "1 run"
     too_short = " — too short for a line, so the points stand alone"
@@ -351,12 +361,12 @@ def range_chart(ranges: list[Range], title: str, unit: str = "PLN/month") -> str
             f'<circle class="{classes}-dot high" cx="{x_of(item.high):.1f}" cy="{y}" r="4">'
             f"</circle>"
             f'<text class="bar-value" x="{x_of(item.high) + 8:.1f}" y="{y + 4}">'
-            f"{_thousands(item.low)}–{_thousands(item.high)} (n={item.n})</text>"
+            f"{thousands(item.low)}–{thousands(item.high)} (n={item.n})</text>"
         )
     axis_y = height - 6
     parts.append(
         f'<text class="axis" x="{_LABEL_WIDTH}" y="{axis_y}">0</text>'
         f'<text class="axis" x="{_LABEL_WIDTH + plot_width}" y="{axis_y}" text-anchor="end">'
-        f"{_thousands(largest)} {_text(unit)}</text>"
+        f"{thousands(largest)} {_text(unit)}</text>"
     )
     return _svg(_WIDTH, height, f"{title} ({unit})", "".join(parts))
