@@ -11,7 +11,7 @@ metric defined exactly once in SQL, shown to the reader verbatim.
 
 **Live report: <https://p0w3r223.github.io/it-job-radar/>**
 
-> Portfolio project A2 — data engineering. Numbers above are from the 2026-08-14 snapshot;
+> Portfolio project — data engineering. Numbers above are from the 2026-08-14 snapshot;
 > [`docs/data/manifest.json`](docs/data/manifest.json) always carries the current ones.
 
 ## How the sample is built
