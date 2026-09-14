@@ -31,7 +31,9 @@ README = ROOT / "README.md"
 #: citing it is history and is allowed to disagree with today's artifact; anywhere else it
 #: is a current claim. Spelled two ways because the README uses both.
 DATED_BY = ("ADR 0001", "adr/0001")
-_SIZE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(kB|MB|GB)\b")
+#: Case-insensitive because the defect spelling is not the only one: a README saying
+#: `~250 KB` states the same wrong figure and a case-sensitive sweep returns nothing at all.
+_SIZE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(kB|MB|GB)\b", re.IGNORECASE)
 
 
 class _ParserBuilt(Exception):
@@ -52,10 +54,18 @@ def _read(path: Path) -> str:
 
 
 def _docs() -> list[Path]:
-    scope = [README, ROOT / "CLAUDE.md", *sorted((ROOT / "docs").rglob("*.md"))]
+    """Where this repository *teaches* the CLI, which is not everywhere it mentions it.
+
+    The first edition swept `docs/**/*.md` too, and went green over a mutation deleting the
+    README's `site --out` line — because `docs/plan/0001`:319 names `pipeline site --out
+    docs/`. That is the exact line this guard's own docstring blames for the original false
+    positive: a 2026-08 implementation walkthrough documents nothing for a reader running
+    `--help` today. `docs/adr|plan|ideas|research` are dated records, excluded here for the
+    reason `test_decisions._swept()` gives for excluding them there.
+    """
+    scope = [README, ROOT / "CLAUDE.md"]
     missing = [p.name for p in scope if not p.is_file()]
     assert missing == [], f"the documentation sweep names files that are not there: {missing}"
-    assert len(scope) > 2, "the sweep found no docs/ markdown at all"
     return scope
 
 

@@ -120,8 +120,11 @@ a committed artifact prints**, never a rounding and never a re-derivation. The s
 
 That checker reads HTML and CSS, so it cannot see this repository's artifacts and cannot tell an
 exempt page from one nobody built tiles for. What it structurally cannot carry lives in
-`tests/test_site.py` — the other half of the carrier, and the reason `docs/adr/0004_what-carries-the-page-spec.md`
-chose one checker plus local assertions over eleven vendored copies.
+`tests/test_site.py` — the other half of the carrier, and the reason the index's
+`docs/adr/0004_what-carries-the-page-spec.md` chose one checker plus local assertions over
+eleven vendored copies. **That path is in the portfolio index, not here**: `docs/adr/0004`
+in this repository is `0004_analysis-population.md`, and the sentence read as a citation of
+it for as long as nothing resolved either.
 
 ## Code intelligence
 

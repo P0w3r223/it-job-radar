@@ -26,6 +26,7 @@ def tracked(*patterns: str) -> list[str]:
             ["git", "-C", str(ROOT), "ls-files", "-z", *patterns],
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
     except OSError as exc:  # pragma: no cover - a machine without git
         raise AssertionError(f"git is needed to answer this and is not here: {exc}") from exc

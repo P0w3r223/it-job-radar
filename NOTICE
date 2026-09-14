@@ -28,6 +28,10 @@ give, which is the gap this file exists to close.
 No file count and no file names are written above. tests/test_notice.py holds this note to
 the code instead: the attribution sentence is one string in src/it_job_radar/config.py,
 and the guard checks that the same string reaches this file, the README, the manifest
-committed beside the data and the published page — and that every committed file under
-docs/data/ is inside the exception this note states. A sentence that moves in one place
-and not in the others fails the suite rather than being found by a reader.
+committed beside the data and the published page — and that no committed data file sits
+outside the exception. A sentence that moves in one place and not in the others fails the
+suite rather than being found by a reader.
+
+*The line above read "that every committed file under docs/data/ is inside the exception",
+which is a tautology: docs/data/ is the exception. The guard asserts the direction that is
+worth asserting, and this note described the one that is not.*

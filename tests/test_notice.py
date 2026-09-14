@@ -34,6 +34,13 @@ PAGE = ROOT / "docs" / "index.html"
 #: Derived so that moving `DATASET_DIR` reddens this file instead of leaving `NOTICE`
 #: carving out somewhere the data no longer is.
 CARVED = config.DATASET_DIR.relative_to(ROOT).as_posix() + "/"
+#: What a published table can arrive as. `export` writes Parquet and only Parquet today, so
+#: the others buy nothing yet — but `NOTICE` promises the exception covers *the published
+#: dataset*, not one file extension, and a table that ever ships as CSV would be published
+#: under MIT by `LICENSE` and mentioned by nothing. `.json` is deliberately absent: the
+#: manifest travels with the data inside the carve-out, while `.mcp.json` and friends sit
+#: outside it and are not data at all.
+DATA_GLOBS = ("*.parquet", "*.csv", "*.tsv", "*.arrow", "*.feather")
 
 
 def _folded(path: Path) -> str:
@@ -129,8 +136,8 @@ def test_no_published_data_file_sits_outside_the_carve_out():
     it. Derived from the tree rather than from a list: a Parquet committed somewhere else is
     published under MIT by `LICENSE` and mentioned by nothing.
     """
-    published = tracked("*.parquet")
-    assert published, "no Parquet is tracked at all; this guard is reading the wrong tree"
+    published = tracked(*DATA_GLOBS)
+    assert published, "no dataset file is tracked at all; this guard is reading the wrong tree"
     outside = sorted(one for one in published if not one.startswith(CARVED))
     assert outside == [], f"published data outside the {CARVED} exception NOTICE states"
 
