@@ -8,8 +8,9 @@ in one place, and asserted by a test rather than left to reviewer vigilance.
 
 The hash is stable across snapshots, so an offer can still be followed over time.
 
-Parquet rather than JSON or CSV because the browser reads it column by column: the page
-downloads one file and runs real SQL against it (ADR 0001).
+Parquet rather than JSON or CSV because it commits small and the analytical engine reads
+it column by column — and a reader who downloads it can run the same SQL. ADR 0001 had the
+page run that query itself; that half was dropped, so the querying happens at build time.
 """
 
 from __future__ import annotations

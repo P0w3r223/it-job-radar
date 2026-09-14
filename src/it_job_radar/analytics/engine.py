@@ -5,8 +5,8 @@ fragments — because the same text is what the site shows the reader under "Sho
 A query the reader cannot see is a query nobody can check.
 
 The dataset is a directory of Parquet files registered as views under their table names,
-so the SQL reads like ordinary table SQL and stays portable between this engine and
-DuckDB-WASM in the browser.
+so the SQL reads like ordinary table SQL rather than like this engine's own dialect — and
+a reader who downloads the dataset runs the same text against it.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ _PARAM_RE = re.compile(r"\$([a-z_]+)")
 
 # Defaults per parameter name. Names mean the same thing in every query, so one table is
 # clearer than repeating defaults per file — and it keeps them out of the SQL, which has to
-# stay readable to someone inspecting it in the browser.
+# stay readable to someone reading it on the page.
 _PARAM_DEFAULTS = {
     "seniority": None,
     "role_family": None,
