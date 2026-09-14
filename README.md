@@ -79,8 +79,9 @@ docs/adr/                  # why the non-obvious decisions were made
 
 ## The published dataset
 
-`docs/data/` holds the artifact the page downloads (~250 kB): **derived analytical data,
-deliberately not a substitute for the source**
+`docs/data/` holds the published artifact (1215 kB, the figure `manifest.json` states and
+`pipeline export` prints): **derived analytical data, deliberately not a substitute for
+the source**
 ([ADR 0002](docs/adr/0002_published-artifact-policy.md)) — no title, no company, no URL,
 and `offer_id` replaced by a salted, non-reversible hash stable across snapshots.
 `manifest.json` states provenance, row counts, quality metrics and what was redacted.
@@ -131,10 +132,10 @@ ruff check .
 # quality metrics + data contract (exit 1 on violation), and the unmatched-alias list
 .venv/Scripts/python -m it_job_radar.pipeline quality
 # the redacted Parquet dataset the site queries, then the page built from it
-.venv/Scripts/python -m it_job_radar.pipeline export
-.venv/Scripts/python -m it_job_radar.pipeline site
+.venv/Scripts/python -m it_job_radar.pipeline export   # --out: write the dataset elsewhere
+.venv/Scripts/python -m it_job_radar.pipeline site     # --out: render the page elsewhere
 # check the published manifest still describes the data beside it (CI runs this too)
-.venv/Scripts/python -m it_job_radar.pipeline verify
+.venv/Scripts/python -m it_job_radar.pipeline verify   # --dataset: check another copy
 ```
 
 ## Limitations
@@ -165,5 +166,6 @@ reasoning, including why No Fluff Jobs and justjoin.it were rejected.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Job data © theprotocol.it (Grupa Pracuj) — collected
-respectfully for educational, non-commercial use.
+MIT — see [LICENSE](LICENSE), with one exception stated in [NOTICE](NOTICE): the published
+dataset under `docs/data/` is not covered by it. Job data © theprotocol.it (Grupa Pracuj),
+collected respectfully for educational, non-commercial use.

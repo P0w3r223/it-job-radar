@@ -1,0 +1,33 @@
+NOTICE — third-party data in this repository
+
+The MIT licence in LICENSE covers everything in this repository except one thing: the
+published dataset under docs/data/. Stated as an exception rather than as a list of the
+files it holds, because that list is docs/data/manifest.json's job and it is rewritten on
+every export — a copy kept here would be wrong the first time a table is added or dropped.
+
+Job data © theprotocol.it (Grupa Pracuj), collected respectfully for educational,
+non-commercial use.
+
+Those files are derived analytical data rather than a copy of the source. The columns that
+would make them one — title, company and offer URL — are dropped before anything is
+written, and offer identifiers are replaced by a salted hash. What is published answers
+market questions (how many, how much, which technologies, where) and deliberately cannot
+answer listing questions (who is hiring, where to apply).
+docs/adr/0002_published-artifact-policy.md is the policy that decides what may be in them,
+and manifest.json states per build what was redacted and what remains.
+
+Derived is not unencumbered. The measurements are computed from adverts theprotocol.it
+published, and the collection is bounded in deference to the database right its publisher
+holds over its own base — docs/research/data-sources.md is the reasoning. So this dataset
+is redistributed here under no grant from the copyright holder named in LICENSE. What this
+repository offers under MIT is the code that collects, redacts, measures and renders; the
+figures travel with it on the attribution above rather than on ours. A redistributor
+reading LICENSE alone would take a commercial grant this repository is in no position to
+give, which is the gap this file exists to close.
+
+No file count and no file names are written above. tests/test_notice.py holds this note to
+the code instead: the attribution sentence is one string in src/it_job_radar/config.py,
+and the guard checks that the same string reaches this file, the README, the manifest
+committed beside the data and the published page — and that every committed file under
+docs/data/ is inside the exception this note states. A sentence that moves in one place
+and not in the others fails the suite rather than being found by a reader.
