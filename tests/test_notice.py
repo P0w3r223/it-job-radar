@@ -18,6 +18,7 @@ export, so a second copy here would go stale the first time a table is added.
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -46,6 +47,17 @@ def _folded(path: Path) -> str:
     return " ".join(path.read_bytes().decode("utf-8").split())
 
 
+def _sentences(text: str) -> list[str]:
+    """Folded text split where a full stop is followed by a space.
+
+    Crude, and deliberately so: the one guard that needs it is asking which sentence states
+    the carve-out, and a sentence boundary in this file is never anything subtler. A reader
+    who adds `e.g.` to NOTICE gets a shorter fragment here, not a wrong verdict — the
+    fragment still either names the directory or does not.
+    """
+    return [one.strip() for one in re.split(r"(?<=\.)\s+", text) if one.strip()]
+
+
 def _manifest() -> dict:
     return json.loads((config.DATASET_DIR / config.MANIFEST_NAME).read_text(encoding="utf-8"))
 
@@ -55,9 +67,26 @@ def test_the_notice_states_the_attribution_the_code_states():
 
 
 def test_the_notice_carves_out_the_directory_the_code_publishes_to():
-    assert CARVED in _folded(NOTICE), (
+    """The sentence stating the exception, not the file and not even the paragraph.
+
+    Two editions of this guard went green over a mutation pointing the carve-out at
+    `docs/dataset/`. The first read the whole file, where the closing paragraph mentions the
+    right directory in passing. The second read the paragraph — and the very sentence after
+    the exception says the file list is `docs/data/manifest.json`'s job, so the substring was
+    still there. A carve-out is one sentence, and a sentence naming the wrong directory
+    grants MIT over the data while every other mention in the file reads correctly.
+    """
+    stating = [
+        one
+        for one in _sentences(_folded(NOTICE))
+        if "LICENSE" in one and "except" in one.lower()
+    ]
+    assert len(stating) == 1, (
+        f"NOTICE states {len(stating)} exceptions to LICENSE; this guard reads exactly one"
+    )
+    assert CARVED in stating[0], (
         f"NOTICE states an exception that does not name {CARVED}, which is where "
-        "config.DATASET_DIR publishes"
+        f"config.DATASET_DIR publishes: {stating[0]}"
     )
 
 
